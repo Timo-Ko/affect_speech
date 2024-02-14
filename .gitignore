@@ -3,6 +3,7 @@
 *.RData
 .Ruserdata
 .README.Md
+*.docx
 
 **/opensmile
 **/other_docs
