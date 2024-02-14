@@ -4,6 +4,8 @@
 .Ruserdata
 .README.Md
 *.docx
+.DS_Store
 
+**/.DS_Store
 **/opensmile
 **/other_docs
