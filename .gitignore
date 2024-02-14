@@ -1,12 +1,12 @@
 .Rproj.user
 .Rhistory
-*.RData
 .Ruserdata
 .README.Md
 *.docx
 .DS_Store
 *.csv
 
+**/data
 **/.DS_Store
 **/opensmile
 **/other_docs
