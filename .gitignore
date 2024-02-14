@@ -5,6 +5,7 @@
 .README.Md
 *.docx
 .DS_Store
+*.csv
 
 **/.DS_Store
 **/opensmile
