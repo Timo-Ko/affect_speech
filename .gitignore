@@ -7,6 +7,7 @@
 *.csv
 
 **/data
+**/archive
 **/.DS_Store
 **/opensmile
 **/other_docs
