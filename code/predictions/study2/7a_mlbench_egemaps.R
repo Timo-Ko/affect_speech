@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes")
+packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes", "bbotk", "mlr3mbo")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -11,7 +11,7 @@ set.seed(123, kind = "L'Ecuyer") # set seed to make sure all results are reprodu
 ### READ IN DATA ####
 
 # read in data frames
-affect_acoustics  <- readRDS("data/affect_acoustics.RData")
+affect_acoustics  <- readRDS("study2_us/data/affect_acoustics.RData")
 
 # load required functions
 source("r_code/functions/sign_test_folds.R")
@@ -58,6 +58,8 @@ egemaps_arousal = TaskRegr$new(id = "egemaps_arousal",
                                                          which(colnames(affect_acoustics)== "arousal"), 
                                                          which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
                            target = "arousal")
+
+## supplementary analyses
 
 # content fluctuation from baseline
 egemaps_content_diff = TaskRegr$new(id = "egemaps_content_diff", 
@@ -145,7 +147,7 @@ egemaps_arousal_diff$col_roles$feature = setdiff(egemaps_arousal_diff$col_roles$
 
 lrn_fl = lrn("regr.featureless")
 lrn_rf = lrn("regr.ranger", 
-             mtry = to_tune(1, 50),
+             mtry = to_tune(1, round(length(egemaps_arousal$col_roles$feature)*0.7)),
              num.trees =1000) # random forest
 lrn_rr = lrn("regr.cv_glmnet",
              alpha= to_tune(0,1)) # lasso
@@ -160,8 +162,8 @@ set_threads(lrn_rf, n = detectCores())
 at_rf = AutoTuner$new(
   learner = lrn_rf,
   resampling = rsmp("cv", folds = 5),
-  measure = msr("regr.rsq"),
-  terminator = trm("evals", n_evals = 10),
+  measure = msr("regr.mse"),
+  terminator = trm("evals", n_evals = 50),
   tuner = tnr("random_search"),
   store_models = TRUE
 )
@@ -169,8 +171,8 @@ at_rf = AutoTuner$new(
 at_rr = AutoTuner$new(
   learner = lrn_rr,
   resampling = rsmp("cv", folds = 5),
-  measure = msr("regr.rsq"),
-  terminator = trm("evals", n_evals = 10),
+  measure = msr("regr.mse"),
+  terminator = trm("evals", n_evals = 50),
   tuner = tnr("random_search"),
   store_models = TRUE
 )
@@ -222,11 +224,8 @@ saveRDS(bmr_egemaps_gender, "results/bmr_egemaps_gender.RData") # save results
 
 bmgrid_egemaps = benchmark_grid(
   task = c(egemaps_arousal,
-           #egemaps_arousal_diff,
            egemaps_content,
-           #egemaps_content_diff,
-           egemaps_sad#,
-           #egemaps_sad_diff
+           egemaps_sad
            ),
   learner = list(lrn_fl, at_rf, at_rr),
   resampling = resampling
@@ -241,9 +240,6 @@ saveRDS(bmr_egemaps, "results/bmr_egemaps.RData") # save results
 #### BENCHMARK RESULTS AND SIGNIFICANCE TESTS ####
 
 # read in benchmark results
-
-bmr_egemaps_content <- readRDS("results/bmr_egemaps_content.RData")
-bmr_egemaps_sad <- readRDS("results/bmr_egemaps_sad.RData")
 
 
 bmr_egemaps$aggregate(mes)
