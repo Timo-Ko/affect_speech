@@ -18,199 +18,210 @@ source("code/functions/sign_test_folds.R")
 affect_egemaps_study1  <- readRDS("data/study1/affect_egemaps.RData")
 affect_compare_study1  <- readRDS("data/study1/affect_compare.RData")
 
+# remove illegal characters from colnames 
+colnames(affect_egemaps_study1) <- make.names(colnames(affect_egemaps_study1), unique = TRUE)
+colnames(affect_compare_study1) <- make.names(colnames(affect_compare_study1), unique = TRUE)
+
 # study 2
 affect_egemaps_study2  <- readRDS("data/study2/affect_acoustics.RData")
-affect_compare_study2  <- readRDS("data/study2/affect_acoustics.RData")
-affect_wordembeddings_study2  <- readRDS("data/study2/affect_wordembeddings.RData")
+#affect_compare_study2  <- readRDS("data/study2/affect_egemaps_study2.RData")
+affect_wordembeddings <- readRDS("data/study2/affect_wordembeddings.RData")
+
+# remove punctuation from colnames 
+colnames(affect_egemaps_study2) <- make.names(colnames(affect_egemaps_study2), unique = TRUE)
 
 #### CREATE TASKS: STUDY 1 ####
 
 ## benchmark predictions
 
 # age
-affect_egemaps_age <- affect_egemaps[!is.na(affect_egemaps$Demo_A1),] # create new df with no missing data for age
+affect_egemaps_age <- affect_egemaps_study1[!is.na(affect_egemaps_study1$Demo_A1),] # create new df with no missing data for age
 
-egemaps_age = TaskRegr$new(id = "egemaps_age", 
+egemaps_age_study1 = TaskRegr$new(id = "egemaps_age_study1", 
                            backend = affect_egemaps_age[,c(which(colnames(affect_egemaps_age)=="user_id"),
                                                            which(colnames(affect_egemaps_age)=="Demo_A1"),  
-                                                           which(colnames(affect_egemaps_age)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps_age)=="equivalentSoundLeveldBp"))], 
+                                                           which(colnames(affect_egemaps_age)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_age)=="equivalentSoundLevel_dBp"))], 
                            target = "Demo_A1")
 
 # gender
-affect_egemaps_gender <- affect_egemaps[!is.na(affect_egemaps$Demo_GE1),] # create new df with no missing data for gender
+affect_egemaps_gender <- affect_egemaps_study1[!is.na(affect_egemaps_study1$Demo_GE1),] # create new df with no missing data for gender
 affect_egemaps_gender$Demo_GE1 <- as.factor(affect_egemaps_gender$Demo_GE1) # convert gender to factor
 
-egemaps_gender = TaskClassif$new(id = "egemaps_gender", 
+egemaps_gender_study1 = TaskClassif$new(id = "egemaps_gender_study1", 
                                  backend = affect_egemaps_gender[,c(which(colnames(affect_egemaps_gender)=="user_id"),
                                                                     which(colnames(affect_egemaps_gender)=="Demo_GE1"),  
-                                                                    which(colnames(affect_egemaps_gender)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps_gender)=="equivalentSoundLeveldBp"))], 
+                                                                    which(colnames(affect_egemaps_gender)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_gender)=="equivalentSoundLevel_dBp"))], 
                                  target = "Demo_GE1")
 
 ## state affect experience
 
 # raw valence score 
-egemaps_valence = TaskRegr$new(id = "egemaps_valence", 
-                               backend = affect_egemaps[,c(which(colnames(affect_egemaps)=="user_id"), 
-                                                           which(colnames(affect_egemaps)=="valence"),  
-                                                           which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))], 
+egemaps_valence_study1 = TaskRegr$new(id = "egemaps_valence", 
+                               backend = affect_egemaps_study1[,c(which(colnames(affect_egemaps_study1)=="user_id"), 
+                                                           which(colnames(affect_egemaps_study1)=="valence"),  
+                                                           which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
                                target = "valence")
 
 # raw arousal score
-egemaps_arousal = TaskRegr$new(id = "egemaps_arousal", 
-                               backend = affect_egemaps[,c(which(colnames(affect_egemaps)=="user_id"), 
-                                                           which(colnames(affect_egemaps)=="arousal"),  
-                                                           which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))], 
+egemaps_arousal_study1 = TaskRegr$new(id = "egemaps_arousal", 
+                               backend = affect_egemaps_study1[,c(which(colnames(affect_egemaps_study1)=="user_id"), 
+                                                           which(colnames(affect_egemaps_study1)=="arousal"),  
+                                                           which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
                                target = "arousal")
 
 ## supplementary predictions: fluctuation from baseline
 
 # valence fluctuation from baseline
-egemaps_valence_diff = TaskRegr$new(id = "egemaps_valence_diff", 
-                                    backend = affect_egemaps[,c(which(colnames(affect_egemaps)=="user_id"), 
-                                                                which(colnames(affect_egemaps)=="diff_valence"),  
-                                                                which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))], 
+egemaps_valence_diff_study1 = TaskRegr$new(id = "egemaps_valence_diff", 
+                                    backend = affect_egemaps_study1[,c(which(colnames(affect_egemaps_study1)=="user_id"), 
+                                                                which(colnames(affect_egemaps_study1)=="diff_valence"),  
+                                                                which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
                                     target = "diff_valence")
 
 # arousal fluctuation from baseline
-egemaps_arousal_diff = TaskRegr$new(id = "egemaps_arousal_diff", 
-                                    backend = affect_egemaps[,c(which(colnames(affect_egemaps)=="user_id"), 
-                                                                which(colnames(affect_egemaps)=="diff_arousal"),  
-                                                                which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))], 
+egemaps_arousal_diff_study1 = TaskRegr$new(id = "egemaps_arousal_diff", 
+                                    backend = affect_egemaps_study1[,c(which(colnames(affect_egemaps_study1)=="user_id"), 
+                                                                which(colnames(affect_egemaps_study1)=="diff_arousal"),  
+                                                                which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
                                     target = "diff_arousal")
 
 ## supplementary predictions: compare feature set
 
 # valence
-compare_valence = TaskRegr$new(id = "compare_valence", 
-                               backend = affect_compare[,c(which(colnames(affect_compare)=="user_id"), 
-                                                           which(colnames(affect_compare)=="valence"),  
-                                                           which(colnames(affect_compare)=="audspeclengthL1normsmarange"):which(colnames(affect_compare)=="mfccsmade14stddevFallingSlope"))], 
+compare_valence_study1 = TaskRegr$new(id = "compare_valence", 
+                               backend = affect_compare_study1[,c(which(colnames(affect_compare_study1)=="user_id"), 
+                                                           which(colnames(affect_compare_study1)=="valence"),  
+                                                           which(colnames(affect_compare_study1)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_compare_study1)=="mfcc_sma_de.14._stddevFallingSlope"))], 
                                target = "valence")
 
 # arousal
-compare_arousal = TaskRegr$new(id = "compare_arousal", 
-                               backend = affect_compare[,c(which(colnames(affect_compare)=="user_id"), 
-                                                           which(colnames(affect_compare)=="arousal"),  
-                                                           which(colnames(affect_compare)=="audspeclengthL1normsmarange"):which(colnames(affect_compare)=="mfccsmade14stddevFallingSlope"))], 
+compare_arousal_study1 = TaskRegr$new(id = "compare_arousal", 
+                               backend = affect_compare_study1[,c(which(colnames(affect_compare_study1)=="user_id"), 
+                                                           which(colnames(affect_compare_study1)=="arousal"),  
+                                                           which(colnames(affect_compare_study1)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_compare_study1)=="mfcc_sma_de.14._stddevFallingSlope"))], 
                                target = "arousal")
 
 ## add blocking
 
 # age
-egemaps_age$col_roles$group = "user_id"
-egemaps_age$col_roles$feature = setdiff(egemaps_age$col_roles$feature, "user_id")
+egemaps_age_study1$col_roles$group = "user_id"
+egemaps_age_study1$col_roles$feature = setdiff(egemaps_age_study1$col_roles$feature, "user_id")
 
 # gender
-egemaps_gender$col_roles$group = "user_id"
-egemaps_gender$col_roles$feature = setdiff(egemaps_gender$col_roles$feature, "user_id")
+egemaps_gender_study1$col_roles$group = "user_id"
+egemaps_gender_study1$col_roles$feature = setdiff(egemaps_gender_study1$col_roles$feature, "user_id")
 
 # raw valence score
-egemaps_valence$col_roles$group = "user_id"
-egemaps_valence$col_roles$feature = setdiff(egemaps_valence$col_roles$feature, "user_id")
+egemaps_valence_study1$col_roles$group = "user_id"
+egemaps_valence_study1$col_roles$feature = setdiff(egemaps_valence_study1$col_roles$feature, "user_id")
 
 # raw arousal score
-egemaps_arousal$col_roles$group = "user_id"
-egemaps_arousal$col_roles$feature = setdiff(egemaps_arousal$col_roles$feature, "user_id")
+egemaps_arousal_study1$col_roles$group = "user_id"
+egemaps_arousal_study1$col_roles$feature = setdiff(egemaps_arousal_study1$col_roles$feature, "user_id")
 
 # valence difference from baseline
-egemaps_valence_diff$col_roles$group = "user_id"
-egemaps_valence_diff$col_roles$feature = setdiff(egemaps_valence_diff$col_roles$feature, "user_id")
+egemaps_valence_diff_study1$col_roles$group = "user_id"
+egemaps_valence_diff_study1$col_roles$feature = setdiff(egemaps_valence_diff_study1$col_roles$feature, "user_id")
 
 # arousal difference from baseline
-egemaps_arousal_diff$col_roles$group = "user_id"
-egemaps_arousal_diff$col_roles$feature = setdiff(egemaps_arousal_diff$col_roles$feature, "user_id")
+egemaps_arousal_diff_study1$col_roles$group = "user_id"
+egemaps_arousal_diff_study1$col_roles$feature = setdiff(egemaps_arousal_diff_study1$col_roles$feature, "user_id")
 
 # valence, compare feature set
-compare_valence$col_roles$group = "user_id"
-compare_valence$col_roles$feature = setdiff(compare_valence$col_roles$feature, "user_id")
+compare_valence_study1$col_roles$group = "user_id"
+compare_valence_study1$col_roles$feature = setdiff(compare_valence_study1$col_roles$feature, "user_id")
 
 # arousal, compare feature set
-
-# Use Id column as block factor
-compare_arousal$col_roles$group = "user_id"
-compare_arousal$col_roles$feature = setdiff(compare_arousal$col_roles$feature, "user_id")
+compare_arousal_study1$col_roles$group = "user_id"
+compare_arousal_study1$col_roles$feature = setdiff(compare_arousal_study1$col_roles$feature, "user_id")
 
 #### CREATE TASKS: STUDY 2 ####
 
 ## benchmark predictions
 
+affect_egemaps_age_study2 <- affect_egemaps_study2[!is.na(affect_egemaps_study2$Age),] # create new df with no missing data for age
+
 # age
-egemaps_age = TaskRegr$new(id = "egemaps_age", 
-                               backend = affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                             which(colnames(affect_acoustics)== "Age"), 
-                                                             which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_age_study2 = TaskRegr$new(id = "egemaps_age", 
+                               backend = affect_egemaps_age_study2[,c(which(colnames(affect_egemaps_age_study2)=="user_id"), 
+                                                             which(colnames(affect_egemaps_age_study2)== "Age"), 
+                                                             which(colnames(affect_egemaps_age_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_age_study2)=="equivalentSoundLevel_dBp"))], 
                                target = "Age")
 
 # gender
-affect_acoustics$Gender <- as.factor(affect_acoustics$Gender) # convert gender to factor
+affect_egemaps_study2$Gender <- as.factor(affect_egemaps_study2$Gender) # convert gender to factor
 
-egemaps_gender = TaskClassif$new(id = "egemaps_gender", 
-                           backend = affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                         which(colnames(affect_acoustics)== "Gender"), 
-                                                         which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_gender_study2 = TaskClassif$new(id = "egemaps_gender", 
+                           backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                         which(colnames(affect_egemaps_study2)== "Gender"), 
+                                                         which(colnames(affect_egemaps_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study2)=="equivalentSoundLevel_dBp"))], 
                            target = "Gender")
 
 ## egemaps feature set
 
 # raw contentedness score
-egemaps_content = TaskRegr$new(id = "egemaps_content", 
-                               backend = affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                             which(colnames(affect_acoustics)== "content"), 
-                                                             which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_content_study2 = TaskRegr$new(id = "egemaps_content", 
+                               backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                             which(colnames(affect_egemaps_study2)== "content"), 
+                                                             which(colnames(affect_egemaps_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study2)=="equivalentSoundLevel_dBp"))], 
                                target = "content")
 
 # raw sadness score
-egemaps_sad = TaskRegr$new(id = "egemaps_sad", 
-                           backend = affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                         which(colnames(affect_acoustics)== "sad"), 
-                                                         which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_sad_study2 = TaskRegr$new(id = "egemaps_sad", 
+                           backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                         which(colnames(affect_egemaps_study2)== "sad"), 
+                                                         which(colnames(affect_egemaps_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study2)=="equivalentSoundLevel_dBp"))], 
                            target = "sad")
 
 # raw arousal score
-egemaps_arousal = TaskRegr$new(id = "egemaps_arousal", 
-                           backend = affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                         which(colnames(affect_acoustics)== "arousal"), 
-                                                         which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_arousal_study2 = TaskRegr$new(id = "egemaps_arousal", 
+                           backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                         which(colnames(affect_egemaps_study2)== "arousal"), 
+                                                         which(colnames(affect_egemaps_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study2)=="equivalentSoundLevel_dBp"))], 
                            target = "arousal")
 
 ## supplementary analyses: fluctuations
 
 # content fluctuation from baseline
-egemaps_content_diff = TaskRegr$new(id = "egemaps_content_diff", 
-                                    backend = affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                                  which(colnames(affect_acoustics)== "diff_content"), 
-                                                                  which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_content_diff_study2 = TaskRegr$new(id = "egemaps_content_diff", 
+                                    backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                                  which(colnames(affect_egemaps_study2)== "diff_content"), 
+                                                                  which(colnames(affect_egemaps_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study2)=="equivalentSoundLevel_dBp"))], 
                                     target = "diff_content")
 
 # sad fluctuation from baseline
-egemaps_sad_diff = TaskRegr$new(id = "egemaps_sad_diff", 
-                                backend =  affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                               which(colnames(affect_acoustics)== "diff_sad"), 
-                                                               which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_sad_diff_study2 = TaskRegr$new(id = "egemaps_sad_diff", 
+                                backend =  affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                               which(colnames(affect_egemaps_study2)== "diff_sad"), 
+                                                               which(colnames(affect_egemaps_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study2)=="equivalentSoundLevel_dBp"))], 
                                 target = "diff_sad")
 
 # arousal fluctuation from baseline
-egemaps_arousal_diff = TaskRegr$new(id = "egemaps_arousal_diff", 
-                                backend =  affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
-                                                               which(colnames(affect_acoustics)== "diff_arousal"), 
-                                                               which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
+egemaps_arousal_diff_study2 = TaskRegr$new(id = "egemaps_arousal_diff", 
+                                backend =  affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                               which(colnames(affect_egemaps_study2)== "diff_arousal"), 
+                                                               which(colnames(affect_egemaps_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study2)=="equivalentSoundLevel_dBp"))], 
                                 target = "diff_arousal")
 
 ## supplementary analyses: compare feature set
 
 # raw contentedness score
-compare_content = TaskRegr$new(id = "compare_content", 
-                               backend = ema_acoustics_data[,c(which(colnames(ema_acoustics_data)=="user_id"), which(colnames(ema_acoustics_data)== "content"), which(colnames(ema_acoustics_data)=="audspec_lengthL1norm_sma_range"):which(colnames(ema_acoustics_data)=="mfcc_sma_de.14._stddevFallingSlope"))], 
+compare_content_study2 = TaskRegr$new(id = "compare_content", 
+                               backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                                  which(colnames(affect_egemaps_study2)== "content"), 
+                                                                  which(colnames(affect_egemaps_study2)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_egemaps_study2)=="mfcc_sma_de.14._stddevFallingSlope"))], 
                                target = "content")
 
 # raw sadness score
-compare_sad = TaskRegr$new(id = "compare_sad", 
-                           backend = ema_acoustics_data[,c(which(colnames(ema_acoustics_data)=="user_id"), which(colnames(ema_acoustics_data)== "sad"), which(colnames(ema_acoustics_data)== "sad_weight"), which(colnames(ema_acoustics_data)=="audspec_lengthL1norm_sma_range"):which(colnames(ema_acoustics_data)=="mfcc_sma_de.14._stddevFallingSlope"))], 
+compare_sad_study2 = TaskRegr$new(id = "compare_sad", 
+                           backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), 
+                                                              which(colnames(affect_egemaps_study2)== "sad"), 
+                                                              which(colnames(affect_egemaps_study2)== "audspec_lengthL1norm_sma_range"), which(colnames(affect_egemaps_study2)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_egemaps_study2)=="mfcc_sma_de.14._stddevFallingSlope"))], 
                            target = "sad")
 
 # raw arousal score
-compare_arousal = TaskRegr$new(id = "compare_arousal", 
-                               backend = ema_acoustics_data[,c(which(colnames(ema_acoustics_data)=="user_id"), which(colnames(ema_acoustics_data)== "arousal"), which(colnames(ema_acoustics_data)=="audspec_lengthL1norm_sma_range"):which(colnames(ema_acoustics_data)=="mfcc_sma_de.14._stddevFallingSlope"))], 
+compare_arousal_study2 = TaskRegr$new(id = "compare_arousal", 
+                               backend = affect_egemaps_study2[,c(which(colnames(affect_egemaps_study2)=="user_id"), which(colnames(affect_egemaps_study2)== "arousal"), which(colnames(affect_egemaps_study2)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_egemaps_study2)=="mfcc_sma_de.14._stddevFallingSlope"))], 
                                target = "arousal")
 
 ## word embeddings 
@@ -251,48 +262,48 @@ wordembeddings_arousal_diff = TaskRegr$new(id = "wordembeddings_arousal_diff",
 ## add blocking
 
 # age
-egemaps_age$col_roles$group = "user_id"
-egemaps_age$col_roles$feature = setdiff(egemaps_age$col_roles$feature, "user_id")
+egemaps_age_study2$col_roles$group = "user_id"
+egemaps_age_study2$col_roles$feature = setdiff(egemaps_age_study2$col_roles$feature, "user_id")
 
 # gender
-egemaps_gender$col_roles$group = "user_id"
-egemaps_gender$col_roles$feature = setdiff(egemaps_gender$col_roles$feature, "user_id")
+egemaps_gender_study2$col_roles$group = "user_id"
+egemaps_gender_study2$col_roles$feature = setdiff(egemaps_gender_study2$col_roles$feature, "user_id")
 
 # raw content score
-egemaps_content$col_roles$group = "user_id"
-egemaps_content$col_roles$feature = setdiff(egemaps_content$col_roles$feature, "user_id")
+egemaps_content_study2$col_roles$group = "user_id"
+egemaps_content_study2$col_roles$feature = setdiff(egemaps_content_study2$col_roles$feature, "user_id")
 
 # raw sad score
-egemaps_sad$col_roles$group = "user_id"
-egemaps_sad$col_roles$feature = setdiff(egemaps_sad$col_roles$feature, "user_id")
+egemaps_sad_study2$col_roles$group = "user_id"
+egemaps_sad_study2$col_roles$feature = setdiff(egemaps_sad_study2$col_roles$feature, "user_id")
 
 # raw arousal score
-egemaps_arousal$col_roles$group = "user_id"
-egemaps_arousal$col_roles$feature = setdiff(egemaps_arousal$col_roles$feature, "user_id")
+egemaps_arousal_study2$col_roles$group = "user_id"
+egemaps_arousal_study2$col_roles$feature = setdiff(egemaps_arousal_study2$col_roles$feature, "user_id")
 
 # content difference from baseline
-egemaps_content_diff$col_roles$group = "user_id"
-egemaps_content_diff$col_roles$feature = setdiff(egemaps_content_diff$col_roles$feature, "user_id")
+egemaps_content_diff_study2$col_roles$group = "user_id"
+egemaps_content_diff_study2$col_roles$feature = setdiff(egemaps_content_diff_study2$col_roles$feature, "user_id")
 
 # sad difference from baseline
-egemaps_sad_diff$col_roles$group = "user_id"
-egemaps_sad_diff$col_roles$feature = setdiff(egemaps_sad_diff$col_roles$feature, "user_id")
+egemaps_sad_diff_study2$col_roles$group = "user_id"
+egemaps_sad_diff_study2$col_roles$feature = setdiff(egemaps_sad_diff_study2$col_roles$feature, "user_id")
 
 # arousal difference from baseline
-egemaps_arousal_diff$col_roles$group = "user_id"
-egemaps_arousal_diff$col_roles$feature = setdiff(egemaps_arousal_diff$col_roles$feature, "user_id")
+egemaps_arousal_diff_study2$col_roles$group = "user_id"
+egemaps_arousal_diff_study2$col_roles$feature = setdiff(egemaps_arousal_diff_study2$col_roles$feature, "user_id")
 
 # raw content score, compare feature set
-compare_content$col_roles$group = "user_id"
-compare_content$col_roles$feature = setdiff(compare_content$col_roles$feature, "user_id")
+compare_content_study2$col_roles$group = "user_id"
+compare_content_study2$col_roles$feature = setdiff(compare_content_study2$col_roles$feature, "user_id")
 
 # raw sad score, compare feature set
-compare_sad$col_roles$group = "user_id"
-compare_sad$col_roles$feature = setdiff(compare_sad$col_roles$feature, "user_id")
+compare_sad_study2$col_roles$group = "user_id"
+compare_sad_study2$col_roles$feature = setdiff(compare_sad_study2$col_roles$feature, "user_id")
 
 # raw arousal score, compare feature set
-compare_arousal$col_roles$group = "user_id"
-compare_arousal$col_roles$feature = setdiff(compare_arousal$col_roles$feature, "user_id")
+compare_arousal_study2$col_roles$group = "user_id"
+compare_arousal_study2$col_roles$feature = setdiff(compare_arousal_study2$col_roles$feature, "user_id")
 
 # word embeddings 
 
@@ -320,11 +331,20 @@ wordembeddings_sad_diff$col_roles$feature = setdiff(wordembeddings_sad_diff$col_
 wordembeddings_arousal_diff$col_roles$group = "user_id"
 wordembeddings_arousal_diff$col_roles$feature = setdiff(wordembeddings_arousal_diff$col_roles$feature, "user_id")
 
+# remove raw data to free up memory
+rm(affect_egemaps_study1)
+rm(affect_compare_study1)
+rm(affect_egemaps_age)
+rm(affect_egemaps_gender)
+
+rm(affect_egemaps_study2)
+rm(affect_wordembeddings)
+
 #### CREATE LEARNERS ####
 
 lrn_fl = lrn("regr.featureless")
 lrn_rf = lrn("regr.ranger", 
-             mtry = to_tune(1, round(length(egemaps_arousal$col_roles$feature)*0.7)),
+             mtry = to_tune(1, round(length(egemaps_age_study1$col_roles$feature)*0.7)),
              num.trees =1000) # random forest
 lrn_rr = lrn("regr.cv_glmnet",
              alpha= to_tune(0,1)) # lasso
@@ -369,38 +389,38 @@ progressr::handlers(global = TRUE)
 progressr::handlers("progress")
 
 # age
-bmgrid_egemaps_age = benchmark_grid(
-  task = c(egemaps_age),
-  learner = list(lrn_fl, at_rf, at_rr),
-  resampling = resampling
+bmgrid_egemaps_age_study1 = benchmark_grid(
+  task = egemaps_age_study1,
+  learner = list(lrn_rf = lrn("regr.ranger")),
+  resampling = rsmp("cv", folds = 2L)
 )
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_egemaps_age = benchmark(bmgrid_egemaps_age, store_models = F, store_backends = F) # execute the benchmark
+bmr_egemaps_age_study1 = benchmark(bmgrid_egemaps_age_study1, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_egemaps_age, "results/study1/bmr_egemaps_age.RData") # save results
+saveRDS(bmr_egemaps_age, "results/study1/bmr_egemaps_age_study1.RData") # save results
 
 # gender
-bmgrid_egemaps_gender = benchmark_grid(
-  task = c(egemaps_gender),
+bmgrid_egemaps_gender_study1 = benchmark_grid(
+  task = c(egemaps_gender_study1),
   learner = list(lrn("classif.featureless", predict_type = "prob"), lrn("classif.ranger", num.trees =1000, predict_type = "prob"), lrn("classif.cv_glmnet", predict_type = "prob")),
   resampling = resampling
 )
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_egemaps_gender = benchmark(bmgrid_egemaps_gender, store_models = F, store_backends = F) # execute the benchmark
+bmr_egemaps_gender_study1 = benchmark(bmgrid_egemaps_gender_study1, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_egemaps_gender, "results/study1/bmr_egemaps_gender.RData") # save results
+saveRDS(bmr_egemaps_gender_study1, "results/study1/bmr_egemaps_gender_study1.RData") # save results
 
 ## momentary affect experience
 
-bmgrid_egemaps = benchmark_grid(
-  task = c(egemaps_valence,
-           egemaps_arousal,
-           egemaps_valence_diff, # supplementary analyses 
-           egemaps_arousal_diff
+bmgrid_egemaps_study1 = benchmark_grid(
+  task = c(egemaps_valence_study1,
+           egemaps_arousal_study1,
+           egemaps_valence_diff_study1, # supplementary analyses 
+           egemaps_arousal_diff_study1
   ),
   learner = list(lrn_fl, at_rf, at_rr),
   resampling = resampling
@@ -408,7 +428,7 @@ bmgrid_egemaps = benchmark_grid(
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_egemaps = benchmark(bmgrid_egemaps, store_models = F, store_backends = F) # execute the benchmark
+bmr_egemaps_study1 = benchmark(bmgrid_egemaps_study1, store_models = F, store_backends = F) # execute the benchmark
 
 saveRDS(bmr_egemaps, "results/study1/bmr_egemaps.RData") # save results
 
@@ -446,15 +466,15 @@ progressr::handlers(global = TRUE)
 progressr::handlers("progress")
 
 ## age
-bmgrid_egemaps_age = benchmark_grid(
-  task = egemaps_age,
-  learner = list(lrn_fl, at_rf, at_rr),
-  resampling = resampling
+bmgrid_egemaps_age_study2 = benchmark_grid(
+  task = egemaps_age_study2,
+  learner = list(lrn_fl, lrn_rf),
+  resampling = rsmp("cv", folds = 2L)
 )
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_egemaps_age = benchmark(bmgrid_egemaps_age, store_models = F, store_backends = F) # execute the benchmark
+bmr_egemaps_age_study2 = benchmark(bmgrid_egemaps_age_study2, store_models = F, store_backends = F) # execute the benchmark
 
 saveRDS(bmr_egemaps_age, "results/study2/bmr_egemaps_age.RData") # save results
 
