@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes", "bbotk", "mlr3mbo")
+packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes", "bbotk")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -391,15 +391,19 @@ progressr::handlers("progress")
 # age
 bmgrid_egemaps_age_study1 = benchmark_grid(
   task = egemaps_age_study1,
-  learner = list(lrn_rf = lrn("regr.ranger")),
+  learner = list(lrn_fl, at_rf),
   resampling = rsmp("cv", folds = 2L)
 )
 
-future::plan("multisession", workers = 10) # enable parallelization
+future::plan("multisession", workers = 5) # enable parallelization
 
+time1 = Sys.time()
 bmr_egemaps_age_study1 = benchmark(bmgrid_egemaps_age_study1, store_models = F, store_backends = F) # execute the benchmark
+time2 = Sys.time()
 
-saveRDS(bmr_egemaps_age, "results/study1/bmr_egemaps_age_study1.RData") # save results
+diff = time2 - time1
+
+saveRDS(bmr_egemaps_age_study1, "results/study1/bmr_egemaps_age_study1.RData") # save results
 
 # gender
 bmgrid_egemaps_gender_study1 = benchmark_grid(
