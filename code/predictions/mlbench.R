@@ -397,11 +397,7 @@ bmgrid_egemaps_age_study1 = benchmark_grid(
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-time1 = Sys.time()
 bmr_egemaps_age_study1 = benchmark(bmgrid_egemaps_age_study1, store_models = F, store_backends = F) # execute the benchmark
-time2 = Sys.time()
-
-diff = time2 - time1
 
 saveRDS(bmr_egemaps_age_study1, "results/study1/bmr_egemaps_age_study1.RData") # save results
 
@@ -454,9 +450,9 @@ bmgrid_compare = benchmark_grid(
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_compare_valence = benchmark(bmgrid_compare_valence, store_models = F, store_backends = F) # execute the benchmark
+bmr_compare_study1 = benchmark(bmgrid_compare_study1, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_compare_valence, "results/study1/bmr_compare_valence.RData") # save results
+saveRDS(bmr_compare_study1, "results/study1/bmr_compare_study1.RData") # save results
 
 
 #### BENCHMARK: STUDY 2 ####
@@ -472,7 +468,7 @@ progressr::handlers("progress")
 ## age
 bmgrid_egemaps_age_study2 = benchmark_grid(
   task = egemaps_age_study2,
-  learner = list(lrn_fl, lrn_rf),
+  learner = list(lrn_fl, at_rf, at_rr),
   resampling = rsmp("cv", folds = 2L)
 )
 
@@ -480,27 +476,30 @@ future::plan("multisession", workers = 10) # enable parallelization
 
 bmr_egemaps_age_study2 = benchmark(bmgrid_egemaps_age_study2, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_egemaps_age, "results/study2/bmr_egemaps_age.RData") # save results
+saveRDS(bmr_egemaps_age_study2, "results/study2/bmr_egemaps_age_study2.RData") # save results
 
 ## gender
-bmgrid_egemaps_gender = benchmark_grid(
-  task = egemaps_gender,
+bmgrid_egemaps_gender_study2 = benchmark_grid(
+  task = egemaps_gender_study2,
   learner = list(lrn("classif.featureless", predict_type = "prob"), lrn("classif.ranger", num.trees =1000, predict_type = "prob"), lrn("classif.cv_glmnet", predict_type = "prob")),
   resampling = resampling
 )
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_egemaps_gender = benchmark(bmgrid_egemaps_gender, store_models = F, store_backends = F) # execute the benchmark
+bmr_egemaps_gender_study2 = benchmark(bmgrid_egemaps_gender_study2, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_egemaps_gender, "results/study2/bmr_egemaps_gender.RData") # save results
+saveRDS(bmr_egemaps_gender_study2, "results/study2/bmr_egemaps_gender.RData") # save results
 
 ## momentary affect experience
 
-bmgrid_egemaps = benchmark_grid(
-  task = c(egemaps_arousal,
-           egemaps_content,
-           egemaps_sad
+bmgrid_egemaps_study2 = benchmark_grid(
+  task = c(egemaps_arousal_study2,
+           egemaps_content_study2,
+           egemaps_sad_study2, # supplementary analyses 
+           egemaps_arousal_diff_study2,
+           egemaps_content_diff_study2,
+           egemaps_sad_diff_study2, 
            ),
   learner = list(lrn_fl, at_rf, at_rr),
   resampling = resampling
@@ -508,9 +507,9 @@ bmgrid_egemaps = benchmark_grid(
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_egemaps = benchmark(bmgrid_egemaps, store_models = F, store_backends = F) # execute the benchmark
+bmr_egemaps_study2 = benchmark(bmgrid_egemaps_study2, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_egemaps, "results/study2/bmr_egemaps.RData") # save results
+saveRDS(bmr_egemaps_study2, "results/study2/bmr_egemaps.RData") # save results
 
 ## supplementary analysis: compare feature set
 
@@ -521,24 +520,29 @@ po_preproc = po("pca", param_vals = list(rank. = 88), scale. = T) # extract 88 d
 lrn_rf_at_po = po_preproc %>>% at_rf 
 lrn_rr_at_po = po_preproc %>>% at_rr 
 
-bmgrid_compare = benchmark_grid(
-  task = c(compare_valence, compare_arousal),
+bmgrid_compare_study2 = benchmark_grid(
+  task = c(compare_arousal_study2,
+           compare_content_study2,
+           compare_sad_study2),
   learner = list(lrn_fl, lrn_rf_at_po,  lrn_rr_at_po),
   resampling = resampling
 )
 
 future::plan("multisession", workers = 10) # enable parallelization
 
-bmr_compare = benchmark(bmgrid_compare, store_models = F, store_backends = F) # execute the benchmark
+bmr_compare_study2 = benchmark(bmgrid_compare_study2, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_compare_valence, "results/study2/bmr_compare.RData") # save results
+saveRDS(bmr_compare_study2, "results/study2/bmr_compare.RData") # save results
 
 # word embeddings 
 
 bmgrid_wordembeddings = benchmark_grid(
   task = c(wordembeddings_arousal,
            wordembeddings_content,
-           wordembeddings_sad
+           wordembeddings_sad, # supplementary analyses
+           wordembeddings_arousal_diff,
+           wordembeddings_content_diff,
+           wordembeddings_sad_diff,
   ),
   learner = list(lrn_fl, at_rf, at_rr),
   resampling = resampling
