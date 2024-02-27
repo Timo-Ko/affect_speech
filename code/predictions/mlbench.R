@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3verse", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes", "bbotk")
+packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3verse", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes", "bbotk", "patchwork")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -25,7 +25,8 @@ colnames(affect_compare_study1) <- make.names(colnames(affect_compare_study1), u
 # study 2
 affect_egemaps_study2  <- readRDS("data/study2/affect_acoustics.RData")
 #affect_compare_study2  <- readRDS("data/study2/affect_egemaps_study2.RData")
-affect_wordembeddings <- readRDS("data/study2/affect_wordembeddings.RData")
+affect_wordembeddings_study2 <- readRDS("data/study2/affect_wordembeddings.RData")
+affect_egemaps_wordembeddings_study2 <- readRDS("data/study2/affect_acoustics_wordembeddings.RData")
 
 # remove punctuation from colnames 
 colnames(affect_egemaps_study2) <- make.names(colnames(affect_egemaps_study2), unique = TRUE)
@@ -588,10 +589,18 @@ bmr_results_folds_egemaps_wordembeddings_study2 <- extract_bmr_results(bmr_egema
 pred_table_egemaps_study1 <- results_table(affect_egemaps_study1, bmr_results_folds_egemaps_study1)
 
 pred_table_egemaps_study2 <- results_table(affect_egemaps_study2, bmr_results_folds_egemaps_study2)
+pred_table_wordembeddings_study2 <- results_table(affect_wordembeddings_study2, bmr_results_folds_wordembeddings_study2)
+pred_table_egemaps_wordembeddings_study2 <- results_table(affect_egemaps_wordembeddings_study2, bmr_results_folds_egemaps_wordembeddings_study2)
 
 # add column with p values
 bmr_results_folds_study1 <- dplyr::left_join(bmr_results_folds_egemaps_study1, pred_table_egemaps_study1[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
-bmr_results_folds_study2 <- dplyr::left_join(bmr_results_folds_egemaps_study2, pred_table_egemaps_study1[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
+
+bmr_results_folds_egemaps_study2 <- dplyr::left_join(bmr_results_folds_egemaps_study2, pred_table_egemaps_study2[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
+bmr_results_folds_wordembeddings_study2 <- dplyr::left_join(bmr_results_folds_wordembeddings_study2, pred_table_wordembeddings_study2[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
+bmr_results_folds_egemaps_wordembeddings_study2 <- dplyr::left_join(bmr_results_folds_egemaps_wordembeddings_study2, pred_table_egemaps_wordembeddings_study2[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
+
+# rbind results from study 2
+bmr_results_folds_study2 <- rbind(bmr_results_folds_egemaps_study2, bmr_results_folds_wordembeddings_study2, bmr_results_folds_egemaps_wordembeddings_study2)
 
 # create significance column
 #bmr_results_folds$significance <- as.factor(ifelse(bmr_results_folds$p_rsq_corrected >= 0.05 | is.na(bmr_results_folds$p_rsq_corrected), "no", "yes"))
@@ -599,10 +608,11 @@ bmr_results_folds_study2 <- dplyr::left_join(bmr_results_folds_egemaps_study2, p
 # rename
 
 bmr_results_folds_study1 <- bmr_results_folds_study1  %>% 
+  mutate(study = "study1") %>% 
   mutate(learner_id = case_when(
     learner_id == "regr.featureless" ~    "Baseline",
-    learner_id == "regr.ranger" ~ "Random Forest",
-    learner_id == "regr.cv_glmnet" ~ "LASSO")) %>% 
+    learner_id == "regr.ranger.tuned" ~ "Random Forest",
+    learner_id == "regr.cv_glmnet.tuned" ~ "LASSO")) %>% 
   mutate(feature_set = case_when(
     task_id == "egemaps_valence" ~    "Voice Acoustics",
     task_id == "egemaps_arousal" ~    "Voice Acoustics")) %>% 
@@ -611,10 +621,16 @@ bmr_results_folds_study1 <- bmr_results_folds_study1  %>%
     task_id == "egemaps_arousal" ~ "Arousal"))
 
 bmr_results_folds_study2 <- bmr_results_folds_study2 %>% 
+  filter(!task_id %in% c("egemaps_arousal_diff", "egemaps_content_diff", "egemaps_sad_diff",
+                      "wordembeddings_arousal_diff", "wordembeddings_content_diff", "wordembeddings_sad_diff",
+                      "egemaps_wordembeddings_arousal_diff", "egemaps_wordembeddings_content_diff", "egemaps_wordembeddings_sad_diff")) %>% 
+  mutate(study = "study2") %>% 
   mutate(learner_id = case_when(
     learner_id == "regr.featureless" ~    "Baseline",
     learner_id == "regr.ranger" ~ "Random Forest",
-    learner_id == "regr.cv_glmnet" ~ "LASSO")) %>% 
+    learner_id == "regr.cv_glmnet" ~ "LASSO",
+    learner_id == "regr.ranger.tuned" ~ "Random Forest",
+    learner_id == "regr.cv_glmnet.tuned" ~ "LASSO")) %>% 
   mutate(feature_set = case_when(
     task_id == "egemaps_content" ~    "Voice Acoustics",
     task_id == "egemaps_sad" ~    "Voice Acoustics",
@@ -636,31 +652,34 @@ bmr_results_folds_study2 <- bmr_results_folds_study2 %>%
     task_id == "egemaps_wordembeddings_sad" ~    "Sadness",
     task_id == "egemaps_wordembeddings_arousal" ~ "Arousal"))
 
-# create four figures with main results - two columns for performance measures and separated by study (study 1 on top then study 2 below), Pearson r on the left and r2 on the right, sign pred in bold
+# rbind both studies
+bmr_results_folds <- rbind(bmr_results_folds_study1, bmr_results_folds_study2)
 
-# plot rsq
-ggplot(bmr_results_folds_study1 , aes(x = task_id, y = regr.rsq, color = learner_id, fill = learner_id, shape = learner_id)) +
-  geom_boxplot(width = 0.3,lwd = 1, aes(color = learner_id, fill = learner_id), alpha = 0.3, outlier.shape=NA, position=position_dodge(0.5)) +
-  geom_point(position=position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5), size = 0.5) +
-  coord_flip() +
-  geom_hline(yintercept = 0, color="black", linetype = "dashed", size = 1) +
-  theme_classic() + theme(text = element_text(size = 18), axis.title.y = element_blank(), legend.position = c(0.85, 0.5)) +
-  scale_color_manual(values = c("#440154", "#5ec962")) + scale_fill_manual(values = c("#440154", "#5ec962")) + ylim(-0.1, 0.1) +
-  scale_x_discrete(labels=rev(c("Valence", "Arousal")))
+# create four/ two figures with main results - two columns for performance measures and separated by study (study 1 on top then study 2 below), Pearson r on the left and r2 on the right, sign pred in bold
 
-bmr_plot <-
+bmr_plot_srho <-
   ggplot(
-    bmr_results_folds_study1,
+    bmr_results_folds,
     aes(
       x = factor(
-        interaction(task_id, feature_set),
-        levels = c(
-          "Valence.Voice Acoustics",
-          "Arousal.Voice Acoustics",
+        interaction(task_id, feature_set, study),
+        levels = rev(c( # order factor
+          "Valence.Voice Acoustics.study1",
+          "Arousal.Voice Acoustics.study1",
+          "Contentedness.Voice Acoustics.study2",
+          "Sadness.Voice Acoustics.study2",
+          "Arousal.Voice Acoustics.study2",
+          "Contentedness.Word Embeddings.study2",
+          "Sadness.Word Embeddings.study2",
+          "Arousal.Word Embeddings.study2",
+          "Contentedness.All Features.study2",
+          "Sadness.All Features.study2",
+          "Arousal.All Features.study2"
         )
-      ) ,
-      y = regr.rsq,
-      color = learner_id    )
+        )) ,
+      y = regr.srho,
+      color = learner_id,
+      shape = learner_id)
   ) +
   geom_boxplot(
     width = 0.3,
@@ -673,104 +692,89 @@ bmr_plot <-
              size = 3) +
   scale_x_discrete(
     element_blank(),
-    labels = c(
-      "Valence",
-      "Arousal"
+    labels = rev(c(
+      "Valence (Voice Cues)",
+      "Arousal (Voice Cues)",
+      "Contentedness (Voice Cues)",
+      "Sadness (Voice Cues)",
+      "Arousal (Voice Cues)",
+      "Contentedness (Word Embeddings)",
+      "Sadness (Word Embeddings)",
+      "Arousal (Word Embeddings)",
+      "Contentedness (All Features)",
+      "Sadness (All Features)",
+      "Arousal (All Features)"
     )
-  ) +
-  scale_y_continuous(name = bquote(paste("Out-of-sample ", "R" ^ 2)), limits = c(-0.15, 0.15)) +
+    )) +
+  scale_color_manual(values = c("#377eb8", "#4daf4a", "#e41a1c"), name = "Algorithm") +
+  scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
+  scale_y_continuous(name = bquote("Spearman correlation (r)"), limits = c(-0.15, 0.5)) +
   geom_hline(yintercept = 0, linetype = 'dotted') +
+  geom_vline(xintercept = 9.5) +
   theme_minimal(base_size = 25) +
   labs(colour = "Algorithm") + # change legend title
   theme(axis.text.x = element_text(angle = -45, hjust = 0)) + # rotate x axis labels
   coord_flip() + # flip coordinates
   guides(color = guide_legend(reverse = TRUE),
          shape = guide_legend(reverse = TRUE)) +
-  theme(legend.position = "top",
+  theme(legend.position = "none")
+
+
+# plot rsq
+bmr_plot_rsq <-
+  ggplot(bmr_results_folds, aes(
+    x = factor(
+      interaction(task_id, feature_set, study),
+      levels = rev(c(
+        "Valence.Voice Acoustics.study1",
+        "Arousal.Voice Acoustics.study1",
+        "Contentedness.Voice Acoustics.study2",
+        "Sadness.Voice Acoustics.study2",
+        "Arousal.Voice Acoustics.study2",
+        "Contentedness.Word Embeddings.study2",
+        "Sadness.Word Embeddings.study2",
+        "Arousal.Word Embeddings.study2",
+        "Contentedness.All Features.study2",
+        "Sadness.All Features.study2",
+        "Arousal.All Features.study2"
+      ))
+    ),
+    y = regr.rsq,
+    color = learner_id,
+    shape = learner_id # This maps both color and shape to learner_id
+  )) +
+  geom_boxplot(
+    width = 0.3,
+    lwd = 1,
+    aes(color = learner_id),
+    alpha = 0.3,
+    position = position_dodge(0.5)
+  ) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5), size = 3) +
+  scale_color_manual(values = c("#377eb8", "#4daf4a", "#e41a1c"), name = "Algorithm") +
+  scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
+  scale_y_continuous(name = bquote(paste("Out-of-sample ", "R" ^ 2)), limits = c(-0.15, 0.15)) +
+  geom_hline(yintercept = 0, linetype = 'dotted') +
+  geom_vline(xintercept = 9.5) +
+  theme_minimal(base_size = 25) +
+  labs(colour = "Algorithm") +
+  theme(axis.text.x = element_text(angle = -45, hjust = 0), axis.text.y = element_blank()) +
+  coord_flip() +
+  guides(color = guide_legend(reverse = TRUE), shape = guide_legend(reverse = TRUE)) +
+  theme(legend.position = "right", 
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
         legend.key.size = unit(1, "cm"))
 
 
 
+# use patchwork to combine plots for spearman r and rsq into one figure
 
-# 
-# 
-# bmr_plot <-
-#   ggplot(
-#     bmr_results_folds_study1,
-#     aes(
-#       x = factor(
-#         interaction(task_id, feature_set),
-#         levels = c(
-#           "Arousal.Voice Acoustics",
-#           "Sadness.Voice Acoustics",
-#           "Contentedness.Voice Acoustics",
-#           "Arousal.Word Embeddings",
-#           "Sadness.Word Embeddings",
-#           "Contentedness.Word Embeddings",
-#           "Arousal Fluctuation.All Features",
-#           "Arousal.All Features",
-#           "Sadness Fluctuation.All Features",
-#           "Sadness.All Features",
-#           "Contentedness Fluctuation.All Features",
-#           "Contentedness.All Features"
-#         )
-#       ) ,
-#       y = regr.rsq,
-#       color = significance,
-#       shape = learner_id
-#     )
-#   ) +
-#   geom_boxplot(
-#     width = 0.3,
-#     lwd = 1,
-#     aes(color = significance),
-#     alpha = 0.3,
-#     outlier.shape = NA,
-#     position = position_dodge(0.5)
-#   ) +
-#   geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5),
-#              size = 3) +
-#   scale_x_discrete(
-#     element_blank(),
-#     labels = c(
-#       "Arousal Fluctuation (Voice Acoustics)",
-#       "Arousal (Voice Acoustics)",
-#       "Sadness Fluctuation (Voice Acoustics)",
-#       "Sadness (Voice Acoustics)",
-#       "Contentedness Fluctuation (Voice Acoustics)",
-#       "Contentedness (Voice Acoustics)",
-#       "Arousal Fluctuation (Word Embeddings)",
-#       "Arousal (Word Embeddings)",
-#       "Sadness Fluctuation (Word Embeddings)",
-#       "Sadness (Word Embeddings)",
-#       "Contentedness Fluctuation (Word Embeddings)",
-#       "Contentedness (Word Embeddings)",
-#       "Arousal Fluctuation (All Features)",
-#       "Arousal (All Features)",
-#       "Sadness Fluctuation (All Features)",
-#       "Sadness (All Features)",
-#       "Contentedness Fluctuation (All Features)",
-#       "Contentedness (All Features)"
-#     )
-#   ) +
-#   scale_y_continuous(name = bquote(paste("Out-of-sample ", "R" ^ 2)), limits = c(-0.15, 0.15)) +
-#   geom_hline(yintercept = 0, linetype = 'dotted') +
-#   theme_minimal(base_size = 25) +
-#   labs(colour = "Significance", shape = "Algorithm") + # change legend title
-#   theme(axis.text.x = element_text(angle = -45, hjust = 0)) + # rotate x axis labels
-#   coord_flip() + # flip coordinates
-#   guides(color = guide_legend(reverse = TRUE),
-#          shape = guide_legend(reverse = TRUE)) +
-#   theme(legend.position = "top",
-#         legend.key.size = unit(1, "cm"))
-
-# use patchwork to combine plots for study 1 and study 2 into one figure
-
-bmr_plot = bmr_plot_study1 + bmr_plot2_study2
+bmr_plot = bmr_plot_srho | bmr_plot_rsq
 
 # save figure
 
-png(file="figures/bmr_us_egemaps_wordembeddings_plot.png",width=1500, height=2000)
+png(file="figures/bmr_plot.png",width=1500, height=1000)
 
 bmr_plot
 
