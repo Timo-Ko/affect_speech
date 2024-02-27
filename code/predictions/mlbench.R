@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes", "bbotk")
+packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "mlr3", "mlr3verse", "mlr3learners", "mlr3tuning","ranger", "glmnet", "future", "remotes", "bbotk")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -569,7 +569,8 @@ bmr_age <- readRDS("results/study2/bmr_age.RData")
 bmr_gender <- readRDS("results/study2/bmr_gender.RData")
 
 bmr_egemaps_study2 <- readRDS("results/study2/bmr_egemaps.RData")
-bmr_wordembeddings_study2 <- readRDS("results/study2/bmr_egemaps_wordembeddings.RData")
+bmr_wordembeddings_study2 <- readRDS("results/study2/bmr_wordembeddings.rds")
+bmr_egemaps_wordembeddings_study2 <- readRDS("results/study2/bmr_egemaps_wordembeddings.RData")
 
 ## retrieve benchmark results across tasks and learners for single cv folds (this is needed for barplots)
 
@@ -581,6 +582,7 @@ bmr_results_folds_egemaps_study1 <- extract_bmr_results(bmr_egemaps_study1, mes)
 # study 2
 bmr_results_folds_egemaps_study2 <- extract_bmr_results(bmr_egemaps_study2, mes)
 bmr_results_folds_wordembeddings_study2 <- extract_bmr_results(bmr_wordembeddings_study2, mes)
+bmr_results_folds_egemaps_wordembeddings_study2 <- extract_bmr_results(bmr_egemaps_wordembeddings_study2, mes)
 
 # create combined overview table of performance incl. significance tests
 pred_table_egemaps_study1 <- results_table(affect_egemaps_study1, bmr_results_folds_egemaps_study1)
