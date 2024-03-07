@@ -2,28 +2,28 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "data.table", "ranger", "ggplot2", "mlr3", "mlr3learners", "parallel", "mlr3tuning", "stringr", "DALEX", "DALEXtra")
+packages <- c( "dplyr", "data.table", "ranger", "ggplot2", "mlr3", "mlr3learners", "parallel", "mlr3tuning", "stringr", "DALEX", "DALEXtra", "iml", "patchwork")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
 set.seed(123, kind = "L'Ecuyer") # set seed to make sure all results are reproducible
 
 # load data study 1
-affect_egemaps  <- readRDS("data/study1/affect_egemaps.RData")
+affect_egemaps_study1  <- readRDS("data/study1/affect_egemaps.RData")
+
+colnames(affect_egemaps_study1) <- make.names(colnames(affect_egemaps_study1), unique = TRUE)
+
 
 # load data study 2
-affect_egemaps  <- readRDS("data/study2/affect_egemaps.RData")
+affect_egemaps_study2  <- readRDS("data/study2/affect_acoustics.RData")
 
 #### STUDY 1 ####
 
-# remove all punctuation in colnames for ml 
-names(affect_egemaps)[16:length(names(affect_egemaps))] <- str_replace_all(names(affect_egemaps)[16:length(names(affect_egemaps))], "[:punct:]", "")
-
 # create prediction task for arousal
-egemaps_arousal = TaskRegr$new(id = "egemaps_arousal", 
-                               backend = affect_egemaps[,c(#which(colnames(affect_egemaps)=="user_id"), 
-                                                           which(colnames(affect_egemaps)=="arousal"),  
-                                                           which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))], 
+egemaps_arousal_study1 = TaskRegr$new(id = "egemaps_arousal", 
+                               backend = affect_egemaps_study1[,c(#which(colnames(affect_egemaps_study1)=="user_id"), 
+                                                           which(colnames(affect_egemaps_study1)=="arousal"),  
+                                                           which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
                                target = "arousal")
 
 # ## add blocking - do i need this here?
@@ -38,58 +38,55 @@ egemaps_arousal = TaskRegr$new(id = "egemaps_arousal",
 lrn_rf = lrn("regr.ranger", num.trees =1000)
 
 # enable parallelization
-set_threads(lrn_rf, n = 2)
+set_threads(lrn_rf, n = 4)
 
 # train model 
 
-future::plan("multisession", workers = 2) # enable parallelization
+future::plan("multisession", workers = 4) # enable parallelization
 
-model_rf_egemaps_arousal <- lrn_rf$train(egemaps_arousal) # train model
+model_rf_egemaps_arousal_study1 <- lrn_rf$train(egemaps_arousal_study1) # train model
 
-saveRDS(model_rf_egemaps_arousal, "results/study1/model_rf_egemaps_arousal.RData") # save trained models
+saveRDS(model_rf_egemaps_arousal_study1, "results/study1/model_rf_egemaps_arousal_study1.RData") # save trained models
 
-# create explainer
-rf_exp_arousal <- explain_mlr3(model_rf_egemaps_arousal,
-                               data     = affect_egemaps[,c(which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))],
-                               y        = affect_egemaps$arousal,
-                               label    = "Random Forest",
-                               colorize = FALSE)
+# create predictor 
 
-# compute permutation importance
-importance_rf_arousal <- DALEX::model_parts(explainer = rf_exp_arousal)
+predictor_egemaps_arousal_study1 = Predictor$new(model = model_rf_egemaps_arousal_study1, 
+                          data = affect_egemaps_study1[,c(which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
+                          y= affect_egemaps_study1$arousal)
 
-# save results
-saveRDS(importance_rf_arousal, "results/study1/importance_rf_arousal.RData")
+# feature importance: permutation importance
 
-# create plot
+imp_egemaps_arousal_study1 = FeatureImp$new(predictor_egemaps_arousal_study1 , loss = "rmse", n.repetitions = 2)
+imp_plot = imp_egemaps_arousal_study1$plot()
 
-importance_rf_arousal_plot <- plot(importance_rf_arousal , max_vars = 5, show_boxplots = T)
-
-png(file="figures/importance_rf_arousal_study1_plot.png",width=750, height=500)
-
-importance_rf_arousal_plot 
-
-dev.off()
-
-
-## test iml package for viz
-
-install.packages("iml")
-library(iml)
-
-predictor = Predictor$new(model = model_rf_egemaps_arousal, 
-                          data = affect_egemaps[,c(which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))], 
-                          y= affect_egemaps$arousal)
-
-importance = FeatureImp$new(predictor, loss = "rmse", n.repetitions = 5)
-imp_plot = importance$plot()
-
+# plot
 customized_plot <- imp_plot+
   ggtitle("Feature Importance") +
   xlab("Importance") +
   ylab("Features") +
   theme_minimal()
 
+# feature effects: pdp and ice plot
+
+# loudness
+effect = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "loudness_sma3_percentile20.0",
+                           method = "pdp+ice")
+effect$plot()
+
+pdp_loudness = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "loudness_sma3_stddevNorm",
+                                     method = "pdp+ice")
+pdp_loudness$plot()
+
+
+# spectral flux
+pdp_spectralflux = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "spectralFluxUV_sma3nz_amean",
+                           method = "pdp+ice")
+pdp_spectralflux$plot()
+
+# pitch
+pdp_pitch = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "F0semitoneFrom27.5Hz_sma3nz_percentile50.0",
+                                     method = "pdp+ice")
+pdp_pitch$plot()
 
 
 ### STUDY 2: VOICE ####
@@ -178,6 +175,9 @@ png(file="figures/importance_rf_arousal_plot.png",width=750, height=500)
 importance_rf_arousal_plot 
 
 dev.off()
+
+# create combined figure
+
 
 
 #### STUDY 2: EMBEDDINGS ####
