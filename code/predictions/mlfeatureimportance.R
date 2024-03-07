@@ -16,8 +16,6 @@ affect_egemaps  <- readRDS("data/study2/affect_egemaps.RData")
 
 #### STUDY 1 ####
 
-# this has been the best performing algo
-
 # remove all punctuation in colnames for ml 
 names(affect_egemaps)[16:length(names(affect_egemaps))] <- str_replace_all(names(affect_egemaps)[16:length(names(affect_egemaps))], "[:punct:]", "")
 
@@ -40,19 +38,15 @@ egemaps_arousal = TaskRegr$new(id = "egemaps_arousal",
 lrn_rf = lrn("regr.ranger", num.trees =1000)
 
 # enable parallelization
-set_threads(lrn_rf, n = detectCores())
+set_threads(lrn_rf, n = 2)
 
 # train model 
 
-future::plan("multisession", workers = detectCores()) # enable parallelization
+future::plan("multisession", workers = 2) # enable parallelization
 
 model_rf_egemaps_arousal <- lrn_rf$train(egemaps_arousal) # train model
 
 saveRDS(model_rf_egemaps_arousal, "results/study1/model_rf_egemaps_arousal.RData") # save trained models
-
-
-# load model
-model_rf_egemaps_arousal <- readRDS( "results/study1/model_rf_egemaps_arousal.RData")
 
 # create explainer
 rf_exp_arousal <- explain_mlr3(model_rf_egemaps_arousal,
@@ -63,20 +57,40 @@ rf_exp_arousal <- explain_mlr3(model_rf_egemaps_arousal,
 
 # compute permutation importance
 importance_rf_arousal <- DALEX::model_parts(explainer = rf_exp_arousal)
-head(importance_rf_arousal )
 
 # save results
 saveRDS(importance_rf_arousal, "results/study1/importance_rf_arousal.RData")
 
 # create plot
 
-importance_rf_arousal_plot <- plot(importance_rf_arousal , max_vars = 5, show_boxplots = FALSE)
+importance_rf_arousal_plot <- plot(importance_rf_arousal , max_vars = 5, show_boxplots = T)
 
 png(file="figures/importance_rf_arousal_study1_plot.png",width=750, height=500)
 
 importance_rf_arousal_plot 
 
 dev.off()
+
+
+## test iml package for viz
+
+install.packages("iml")
+library(iml)
+
+predictor = Predictor$new(model = model_rf_egemaps_arousal, 
+                          data = affect_egemaps[,c(which(colnames(affect_egemaps)=="F0semitoneFrom275Hzsma3nzamean"):which(colnames(affect_egemaps)=="equivalentSoundLeveldBp"))], 
+                          y= affect_egemaps$arousal)
+
+importance = FeatureImp$new(predictor, loss = "rmse", n.repetitions = 5)
+imp_plot = importance$plot()
+
+customized_plot <- imp_plot+
+  ggtitle("Feature Importance") +
+  xlab("Importance") +
+  ylab("Features") +
+  theme_minimal()
+
+
 
 ### STUDY 2: VOICE ####
 
