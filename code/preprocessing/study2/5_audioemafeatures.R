@@ -32,9 +32,9 @@ list_of_files
 ### READ IN AND RESTRUCTURE DFS ####
 
 ## read in data (this takes a while!)
-affect_egemaps_raw <- read.csv("data/All_EMA_opensmile_eGeMaps0v2_features_FA18_Joined.csv")
-affect_compare_raw <- read.csv("data/All_EMA_opensmile_features_FA18_Joined.csv")
-participant_demographics <- read.csv("data/Age_Gender_Fa18.csv")
+affect_egemaps_raw <- read.csv("data/study2/All_EMA_opensmile_eGeMaps0v2_features_FA18_Joined.csv")
+affect_compare_raw <- read.csv("data/study2/All_EMA_opensmile_features_FA18_Joined.csv")
+participant_demographics <- read.csv("data/study2/Age_Gender_Fa18.csv")
 
 ## egemaps features
 
@@ -98,29 +98,20 @@ affect_acoustics_enoughvoice <- affect_acoustics %>%
 
 ### FILTER INSTANCES BASED ON AFFECT DATA ####
 
-## remove participants with too few affect experience sampling instances (at least 5 es days )
+## remove participants with less than 10 EMA instances 
 
 # count how many es instances with ema ratings are available per participant
 count_es_user <- affect_acoustics_enoughvoice %>% 
   dplyr::group_by(user_id) %>% 
   dplyr::count(sort =T)
 
-# count how many es days are available per participant
-count_es_perday <- affect_acoustics_enoughvoice %>% 
-  dplyr::group_by(user_id) %>% 
-  dplyr::count(as.Date(timestamp), sort =T)
+hist(count_es_user$n) #plot histogram
 
-count_es_days <- count_es_perday %>% 
-  dplyr::group_by(user_id) %>% 
-  dplyr::count(sort =T)
+# find participants with less than 10 emas
+length(which(count_es_user$n < 10)) 
 
-hist(count_es_days$n) #plot histogram
-
-# find participants with less than 5 days of es
-length(which(count_es_days$n < 5)) 
-
-# find participants with at least 5 es days
-enoughes_user <- count_es_days[ count_es_days$n >=5, "user_id"]
+# find participants with at least 10 emas
+enoughes_user <- count_es_user[ count_es_user$n >= 10, "user_id"]
 
 enoughes_user <- pull(enoughes_user) # format
 
@@ -133,10 +124,10 @@ var_es_user <- affect_acoustics_filtered %>%
   dplyr::slice(1) #keep one row per user 
 
 # find participants with zero variance in their ema responses across all their es (they were probably straight lining)
-length(which(var_es_user$var_content == 0 & var_es_user$var_sad == 0 & var_es_user$var_arousal == 0))
+length(which(var_es_user$var_content == 0 & var_es_user$var_sad == 0 & var_es_user$var_arousal == 0)) # 1 user
 
 # find participants with variance in their responses
-variancees_user <- var_es_user[ var_es_user$var_content != 0  & var_es_user$var_sad != 0 & var_es_user$var_arousal != 0, "user_id"]
+variancees_user <- var_es_user[ var_es_user$var_content > 0  | var_es_user$var_sad > 0 | var_es_user$var_arousal > 0, "user_id"]
 
 variancees_user <- pull(variancees_user) # format
 
@@ -164,7 +155,7 @@ affect_acoustics <- affect_acoustics  %>%
   dplyr::select(c("user_id" , "content", "md_content", "diff_content", "sad", "md_sad", "diff_sad", "arousal", "md_arousal", "diff_arousal"),everything())
 
 # save final df
-saveRDS(affect_acoustics, "data/affect_acoustics.RData")
+saveRDS(affect_acoustics, "data/study2/affect_acoustics.RData")
 
 ### DESCRIPTIVES OF FINAL AFFECT DATA ####
 
