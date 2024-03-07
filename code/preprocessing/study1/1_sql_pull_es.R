@@ -6,20 +6,24 @@ install.packages(setdiff(packages, rownames(installed.packages())))
 lapply(packages, library, character.only = TRUE)
 
 # load functions 
-source("r_code/functions/helpers_general.R")
-source("r_code/functions/es_preprocessing.R")
-source("r_code/functions/smartphonechangers.R")
+source("code/functions/helpers_general.R")
+source("code/functions/es_preprocessing.R")
+source("code/functions/smartphonechangers.R")
 
-source("r_code/local_config.R") # load local config to access databases
+#source("r_code/local_config.R") # load local config to access databases
 
 ### READ IN EXPERIENCE SAMPLING DATA ####
 
 # connect to phonestudy database
 
-phonestudy = dbConnect(RMariaDB::MariaDB(), dbname = "live", user=mariadb_user, password=mariadb_pw)
-
-# explore tables
-DBI::dbListTables(phonestudy)
+# Sensing database
+phonestudy = dbConnect(
+  drv = RMariaDB::MariaDB(),
+  username = "rstudio",
+  password = rstudioapi::askForPassword("Enter your password"),
+  host = 'mc-ibt01.unisg.ch',
+  port = 3306,
+  dbname = "ssps")
 
 # pull es_answer data
 ps_esanswer = dbFetch(dbSendQuery(phonestudy , 'select * from ps_esanswer'))
@@ -80,27 +84,27 @@ al_es_filtered <- al_es %>%
   dplyr::distinct(page_id, .keep_all = T) %>% 
   dplyr::ungroup()
 
-### CORRECT TIMESTAMPS ####
-
-# e.g., when participants traveled or there was a change in summer/winter time
-# this is relevant when pairing the es data with other time-stamp corrected sensing data
-
-affect_es_timecorrected <- preprocessing_general_es(affect_es_filtered, phonestudy )
-al_es_timecorrected <- preprocessing_general_es(al_es_filtered, phonestudy)
+# ### CORRECT TIMESTAMPS ####
+# 
+# # e.g., when participants traveled or there was a change in summer/winter time
+# # this is relevant when pairing the es data with other time-stamp corrected sensing data
+# 
+# affect_es_timecorrected <- preprocessing_general_es(affect_es_filtered, phonestudy )
+# al_es_timecorrected <- preprocessing_general_es(al_es_filtered, phonestudy)
 
 ### EDIT SMARTPHONE CHANGERS ####
 
 # assign new unique user id (>=2000) to users from es data that had changed their phones during the study period
-
-affect_es_changed <- apply_smartphonechanges(affect_es_timecorrected , "user_id")
-al_es_changed <- apply_smartphonechanges(al_es_timecorrected , "user_id")
+# 
+# affect_es_changed <- apply_smartphonechanges(affect_es_timecorrected , "user_id")
+# al_es_changed <- apply_smartphonechanges(al_es_timecorrected , "user_id")
 
 ## RS: hast du für duplicates in den emas gecheckt? Es gibt manchmal pro ES Instanz mehere Einträge 
 ## (das heimtücksische ist auch manchmal, dass die nicht ganz den gleichen timestamp haben, sondern um ein paar Miliseks verzögert auftreten)
 # to do: check for duplicates!
 
 # save
-saveRDS(affect_es_changed, "data/affect_es.RData")
-saveRDS(al_es_changed, "data/al_es.RData")
+saveRDS(affect_es_filtered, "data/study1/affect_ema.RData")
+saveRDS(al_es_filtered, "data/study1/al_ema.RData")
 
 # finish

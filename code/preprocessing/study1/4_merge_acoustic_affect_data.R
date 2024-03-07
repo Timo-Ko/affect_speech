@@ -2,15 +2,15 @@
 
 # load data 
 
-egemaps_features <- readRDS("study1_ger/data/egemaps_features.RData")
-compare_features <- readRDS("study1_ger/data/compare_features.RData")
+egemaps_features <- readRDS("data/study1/egemaps_features.RData")
+compare_features <- readRDS("data/study1/compare_features.RData")
 
-affect_df <- readRDS("study1_ger/data/affect_df.RData")
+affect_df <- readRDS("data/study1/affect_df.RData")
 
 affect_df$user_id <- as.integer(affect_df$user_id)
 
 # load demographic data 
-demographics_df <- readRDS("../questionnaire_data/data/demographics_df.RData")
+demographics_df <- readRDS("data/study1/demographics_df.RData")
 
 ### MERGE AFFECT WITH AUDIO FEATURES ####
 
@@ -35,8 +35,8 @@ affect_compare <- affect_compare  %>%
   dplyr::select(c("e_s_questionnaire_id", "questionnaireStartedTimestamp", "id", "user_id" , "Demo_A1", "Demo_GE1", "condition", "valence", "md_valence", "diff_valence", "arousal", "md_arousal", "diff_arousal"),everything())
 
 # save dfs 
-saveRDS(affect_egemaps, "study1_ger/data/affect_egemaps.RData")
-saveRDS(affect_compare, "study1_ger/data/affect_compare.RData")
+saveRDS(affect_egemaps, "data/study1/affect_egemaps.RData")
+saveRDS(affect_compare, "data/study2/affect_compare.RData")
 
 ### DESCRIPTIVES OF MERGED DATA ####
 
