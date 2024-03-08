@@ -15,8 +15,8 @@ source("code/functions/sign_test_folds.R")
 ### READ IN DATA ####
 
 # study 1
-affect_egemaps_study1  <- readRDS("data/study1/affect_egemaps_ml.rds")
-affect_compare_study1  <- readRDS("data/study1/affect_compare_ml.RData")
+affect_egemaps_study1  <- readRDS("data/study1/affect_egemaps_study1_ml.rds")
+affect_compare_study1  <- readRDS("data/study1/affect_compare_study1_ml.rds")
 
 # remove illegal characters from colnames 
 colnames(affect_egemaps_study1) <- make.names(colnames(affect_egemaps_study1), unique = TRUE)
@@ -259,7 +259,6 @@ wordembeddings_arousal_diff = TaskRegr$new(id = "wordembeddings_arousal_diff",
                                            backend = affect_wordembeddings[,c(which(colnames(affect_wordembeddings)=="user_id"), which(colnames(affect_wordembeddings)=="diff_arousal"), which(colnames(affect_wordembeddings)=="Dim1"):which(colnames(affect_wordembeddings)=="Dim1024"))], 
                                            target = "diff_arousal")
 
-
 ## add blocking
 
 # age
@@ -380,7 +379,7 @@ set_threads(lrn_rf, n = detectCores())
 
 ### PREPROCESSING IN CV ####
 
-po_impute = po("imputehist") # impute NAs with median
+po_impute = po("imputehist") 
 
 # combine training with pre-processing
 lrn_rf_po = po_impute  %>>% lrn_rf
@@ -403,11 +402,11 @@ progressr::handlers("progress")
 # age
 bmgrid_egemaps_age_study1 = benchmark_grid(
   task = egemaps_age_study1,
-  learner = list(lrn_fl, at_rf, at_rr),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
 )
 
-future::plan("multisession", workers = 10) # enable parallelization
+future::plan("multisession", workers = 5) # enable parallelization
 
 bmr_egemaps_age_study1 = benchmark(bmgrid_egemaps_age_study1, store_models = F, store_backends = F) # execute the benchmark
 
@@ -420,7 +419,7 @@ bmgrid_egemaps_gender_study1 = benchmark_grid(
   resampling = resampling
 )
 
-future::plan("multisession", workers = 10) # enable parallelization
+future::plan("multisession", workers = 5) # enable parallelization
 
 bmr_egemaps_gender_study1 = benchmark(bmgrid_egemaps_gender_study1, store_models = F, store_backends = F) # execute the benchmark
 
@@ -460,7 +459,7 @@ bmgrid_compare = benchmark_grid(
   resampling = resampling
 )
 
-future::plan("multisession", workers = 10) # enable parallelization
+future::plan("multisession", workers = 5) # enable parallelization
 
 bmr_compare_study1 = benchmark(bmgrid_compare_study1, store_models = F, store_backends = F) # execute the benchmark
 
@@ -480,8 +479,8 @@ progressr::handlers("progress")
 ## age
 bmgrid_egemaps_age_study2 = benchmark_grid(
   task = egemaps_age_study2,
-  learner = list(lrn_fl, at_rf, at_rr),
-  resampling = rsmp("cv", folds = 2L)
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
+  resampling = resampling
 )
 
 future::plan("multisession", workers = 10) # enable parallelization
@@ -513,7 +512,7 @@ bmgrid_egemaps_study2 = benchmark_grid(
            egemaps_content_diff_study2,
            egemaps_sad_diff_study2, 
            ),
-  learner = list(lrn_fl, at_rf, at_rr),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
 )
 
@@ -556,7 +555,7 @@ bmgrid_wordembeddings = benchmark_grid(
            wordembeddings_content_diff,
            wordembeddings_sad_diff,
   ),
-  learner = list(lrn_fl, at_rf, at_rr),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
 )
 
@@ -571,16 +570,17 @@ saveRDS(bmr_wordembeddings, "results/study2/bmr_wordembeddings.RData") # save re
 ## read in benchmark results
 
 # study 1
-bmr_egemaps_age <- readRDS("results/study1/bmr_egemaps_age.RData")
-bmr_egemaps_gender <- readRDS("results/study1/bmr_egemaps_gender.RData")
+bmr_egemaps_age_study1 <- readRDS("results/study1/bmr_egemaps_age.RData")
+bmr_egemaps_gender_study1 <- readRDS("results/study1/bmr_egemaps_gender.RData")
 
 bmr_egemaps_study1 <- readRDS("results/study1/bmr_egemaps.RData")
 
 # study 2
-bmr_age <- readRDS("results/study2/bmr_age.RData")
-bmr_gender <- readRDS("results/study2/bmr_gender.RData")
+bmr_egemaps_age_study2 <- readRDS("results/study2/bmr_age.RData")
+bmr_egemaps_gender_study2 <- readRDS("results/study2/bmr_gender.RData")
 
 bmr_egemaps_study2 <- readRDS("results/study2/bmr_egemaps.RData")
+bmr_compare_study2 <- readRDS("results/study2/bmr_compare.RData")
 bmr_wordembeddings_study2 <- readRDS("results/study2/bmr_wordembeddings.rds")
 bmr_egemaps_wordembeddings_study2 <- readRDS("results/study2/bmr_egemaps_wordembeddings.RData")
 
