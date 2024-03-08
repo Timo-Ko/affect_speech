@@ -7,7 +7,7 @@ install.packages(setdiff(packages, rownames(installed.packages())))
 lapply(packages, library, character.only = TRUE)
 
 # read in data frame
-affect_acoustics <- readRDS("data/affect_acoustics.RData")
+affect_acoustics <- readRDS("data/study2/affect_acoustics.RData")
 
 ## set up text environment - this needs to be done only once!
 
@@ -30,7 +30,7 @@ wordembeddings_robertalarge <- textEmbed(affect_acoustics$Text,
                             layers = 23) # layer 23 as standard approach
 
 # save results
-saveRDS(wordembeddings_robertalarge, "data/wordembeddings_robertalarge.RData")
+saveRDS(wordembeddings_robertalarge, "data/study2/wordembeddings_robertalarge.RData")
 
 # Save stopping time
 T2 <- Sys.time()
@@ -39,19 +39,6 @@ T2
 T2-T1 # compute time difference
 # takes approx 16 hrs for roberta base, layer 11, 18k rows
 # takes 17 hrs for roberta large layer 23, 13k rows
-
-## explore results
-
-str(wordembeddings_robertalarge)
-
-# one row per case 
-dim(wordembeddings_robertalarge$x)
-
-# these are all used words i guess
-wordembeddings_robertalarge$singlewords_we$words
-wordembeddings_robertalarge$singlewords_we$n # how often each word was used
-
-# and then all weights for each word on each dimension
 
 # create df with wordembedding features and merge with other data (ema, user id etc)
 
@@ -73,13 +60,13 @@ affect_wordembeddings <- cbind(affect_acoustics[,c(which(colnames(affect_acousti
                                                    which(colnames(affect_acoustics)=="arousal"),
                                                    which(colnames(affect_acoustics)=="md_arousal"), 
                                                    which(colnames(affect_acoustics)=="diff_arousal"))], 
-                               wordembeddings_robertalarge$x)
+                               wordembeddings_robertalarge$texts$texts)
 
-saveRDS(affect_wordembeddings, "data/affect_wordembeddings.RData")
+saveRDS(affect_wordembeddings, "data/study2/affect_wordembeddings.RData")
 
 # create df that contains acoustic (eGeMAPS) AND wordembedding features
 
-affect_acoustics_wordembeddings <- cbind(affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
+affect_egemaps_wordembeddings <- cbind(affect_acoustics[,c(which(colnames(affect_acoustics)=="user_id"), 
                                                              which(colnames(affect_acoustics)=="timestamp"), 
                                                              which(colnames(affect_acoustics)=="Age"), 
                                                              which(colnames(affect_acoustics)=="Gender"), 
@@ -98,8 +85,8 @@ affect_acoustics_wordembeddings <- cbind(affect_acoustics[,c(which(colnames(affe
                                                              which(colnames(affect_acoustics)=="md_arousal"), 
                                                              which(colnames(affect_acoustics)=="diff_arousal"), 
                                                              which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
-                                                            wordembeddings_robertalarge$x)
+                                       wordembeddings_robertalarge$texts$texts)
 
-saveRDS(affect_acoustics_wordembeddings, "data/affect_acoustics_wordembeddings.RData")
+saveRDS(affect_egemaps_wordembeddings, "data/study2/affect_egemaps_wordembeddings.RData")
 
 # FINISH

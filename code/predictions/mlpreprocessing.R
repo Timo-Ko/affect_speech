@@ -14,7 +14,8 @@ affect_egemaps_study1 <- readRDS(file="data/study1/affect_egemaps_study1.RData")
 affect_compare_study1 <- readRDS(file="data/study1/affect_compare_study1.RData") 
 
 # study 2
-affect_speech_study2 <- readRDS(file="data/study2/affect_egemaps.RData") 
+affect_egemaps_study2 <- readRDS(file="data/study2/affect_acoustics.RData") 
+affect_wordembeddings_study2 <- readRDS(file="data/study2/affect_wordembeddings.RData") 
 
 #### TARGET INDEPENDENT PREPROCESSING ####
 
@@ -22,8 +23,8 @@ affect_speech_study2 <- readRDS(file="data/study2/affect_egemaps.RData")
 no_feature_columns_study1 = c("e_s_questionnaire_id", "questionnaireStartedTimestamp", "id","user_id", "Demo_A1", "Demo_GE1", 
                               "condition", "valence", "md_valence", "diff_valence", "arousal", "md_arousal", "diff_arousal")
 
-no_feature_columns_study2 = c("e_s_questionnaire_id", "questionnaireStartedTimestamp", "id","user_id", "Demo_A1", "Demo_GE1", 
-                              "condition", "valence", "md_valence", "diff_valence", "arousal", "md_arousal", "diff_arousal")
+no_feature_columns_study2 = c("user_id", "timestamp", "Age", "Gender", "content", "sad", "arousal",
+                              "Total.words" , "File.duration.in.seconds", "Voice.only.duration.in.seconds", "Text", "Sentiment.magnitude", "Sentiment.score")
 
 # apply functions for target-independent preprocessing
 
@@ -36,6 +37,9 @@ affect_egemaps_study2_ml <- target_independent_preproc(affect_speech_study1, no_
 affect_compare_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
 affect_wordembeddings_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
 affect_egemaps_wordembeddings_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
+
+# study2: create combined egemaps + wordembeddings feature set
+#affect_egemaps_wordembeddings_study2_ml <- test
 
 # save data
 
