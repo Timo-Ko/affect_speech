@@ -9,10 +9,9 @@ lapply(packages, library, character.only = TRUE)
 set.seed(123, kind = "L'Ecuyer") # set seed to make sure all results are reproducible
 
 # load data study 1
-affect_egemaps_study1  <- readRDS("data/study1/affect_egemaps.RData")
+affect_speech_study1_ml  <- readRDS("data/study1/affect_speech_study1_ml.RData")
 
-colnames(affect_egemaps_study1) <- make.names(colnames(affect_egemaps_study1), unique = TRUE)
-
+colnames(affect_egemaps_study1_ml) <- make.names(colnames(affect_egemaps_study1_ml), unique = TRUE) # fix colnames
 
 # load data study 2
 affect_egemaps_study2  <- readRDS("data/study2/affect_acoustics.RData")
@@ -21,18 +20,10 @@ affect_egemaps_study2  <- readRDS("data/study2/affect_acoustics.RData")
 
 # create prediction task for arousal
 egemaps_arousal_study1 = TaskRegr$new(id = "egemaps_arousal", 
-                               backend = affect_egemaps_study1[,c(#which(colnames(affect_egemaps_study1)=="user_id"), 
-                                                           which(colnames(affect_egemaps_study1)=="arousal"),  
-                                                           which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
+                               backend = affect_speech_study1_ml[,c(
+                                                           which(colnames(affect_speech_study1_ml)=="arousal"),  
+                                                           which(colnames(affect_speech_study1_ml)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_speech_study1_ml)=="equivalentSoundLevel_dBp"))], 
                                target = "arousal")
-
-# ## add blocking - do i need this here?
-# 
-# # Use participant id column as block factor
-# egemaps_arousal$col_roles$group = "user_id"
-# 
-# # Remove Id from feature space
-# egemaps_arousal$col_roles$feature = setdiff(egemaps_arousal$col_roles$feature, "user_id")
 
 # create rf learner 
 lrn_rf = lrn("regr.ranger", num.trees =1000)
@@ -49,10 +40,9 @@ model_rf_egemaps_arousal_study1 <- lrn_rf$train(egemaps_arousal_study1) # train 
 saveRDS(model_rf_egemaps_arousal_study1, "results/study1/model_rf_egemaps_arousal_study1.RData") # save trained models
 
 # create predictor 
-
 predictor_egemaps_arousal_study1 = Predictor$new(model = model_rf_egemaps_arousal_study1, 
-                          data = affect_egemaps_study1[,c(which(colnames(affect_egemaps_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_egemaps_study1)=="equivalentSoundLevel_dBp"))], 
-                          y= affect_egemaps_study1$arousal)
+                          data = affect_speech_study1_ml[,c(which(colnames(affect_speech_study1_ml)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_speech_study1_ml)=="equivalentSoundLevel_dBp"))], 
+                          y = affect_speech_study1_ml$arousal)
 
 # feature importance: permutation importance
 
@@ -93,15 +83,15 @@ pdp_pitch$plot()
 
 ## create tasks
 
-# # raw contentedness score
-# egemaps_content = TaskRegr$new(id = "egemaps_content", 
-#                                backend = affect_acoustics[,c(#which(colnames(affect_acoustics)=="user_id"), 
-#                                                              which(colnames(affect_acoustics)== "content"), 
-#                                                              which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
-#                                target = "content")
+# raw contentedness score
+egemaps_content_study2 = TaskRegr$new(id = "egemaps_content",
+                               backend = affect_acoustics[,c(#which(colnames(affect_acoustics)=="user_id"),
+                                                             which(colnames(affect_acoustics)== "content"),
+                                                             which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))],
+                               target = "content")
 
 # raw arousal score
-egemaps_arousal = TaskRegr$new(id = "egemaps_arousal", 
+egemaps_arousal_study2 = TaskRegr$new(id = "egemaps_arousal", 
                                backend = affect_acoustics[,c(#which(colnames(affect_acoustics)=="user_id"), 
                                  which(colnames(affect_acoustics)== "arousal"), 
                                  which(colnames(affect_acoustics)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_acoustics)=="equivalentSoundLevel_dBp"))], 
@@ -180,7 +170,7 @@ dev.off()
 
 
 
-#### STUDY 2: EMBEDDINGS ####
+#### STUDY 2: WORD EMBEDDINGS ####
 
 ## create tasks
 

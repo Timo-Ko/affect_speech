@@ -14,6 +14,13 @@ demographics_df <- readRDS("data/study1/demographics_df.RData")
 
 ### MERGE AFFECT WITH AUDIO FEATURES ####
 
+# remove unnedded columns
+egemaps_features$name <- NULL
+compare_features$name <- NULL
+
+egemaps_features$frameTime <- NULL
+compare_features$frameTime <- NULL
+
 affect_egemaps <- merge(egemaps_features, affect_df, by="e_s_questionnaire_id")
 
 affect_compare <- merge(compare_features, affect_df, by="e_s_questionnaire_id")
@@ -35,8 +42,8 @@ affect_compare <- affect_compare  %>%
   dplyr::select(c("e_s_questionnaire_id", "questionnaireStartedTimestamp", "id", "user_id" , "Demo_A1", "Demo_GE1", "condition", "valence", "md_valence", "diff_valence", "arousal", "md_arousal", "diff_arousal"),everything())
 
 # save dfs 
-saveRDS(affect_egemaps, "data/study1/affect_egemaps.RData")
-saveRDS(affect_compare, "data/study2/affect_compare.RData")
+saveRDS(affect_egemaps, "data/study1/affect_egemaps_study1.RData")
+saveRDS(affect_compare, "data/study1/affect_compare_study1.RData")
 
 ### DESCRIPTIVES OF MERGED DATA ####
 
@@ -45,5 +52,8 @@ length(unique(affect_egemaps$user_id))
 
 # number of es
 length(unique(affect_egemaps$e_s_questionnaire_id))
+
+# number of audio logs
+dim(affect_egemaps)
 
 ## FINISH

@@ -10,15 +10,11 @@ source("code/functions/target_independent_preproc.R")
 # load data
 
 # study 1
-affect_speech_study1 <- readRDS(file="data/study1/affect_egemaps.RData") 
+affect_egemaps_study1 <- readRDS(file="data/study1/affect_egemaps_study1.RData") 
+affect_compare_study1 <- readRDS(file="data/study1/affect_compare_study1.RData") 
 
 # study 2
 affect_speech_study2 <- readRDS(file="data/study2/affect_egemaps.RData") 
-
-# remove unnedded columns
-
-affect_speech_study1$frameTime <- NULL
-affect_speech_study1$name <- NULL
 
 #### TARGET INDEPENDENT PREPROCESSING ####
 
@@ -31,15 +27,26 @@ no_feature_columns_study2 = c("e_s_questionnaire_id", "questionnaireStartedTimes
 
 # apply functions for target-independent preprocessing
 
-affect_speech_study1_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study1)
-affect_speech_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
+# study1
+affect_egemaps_study1_ml <- target_independent_preproc(affect_egemaps_study1, no_feature_columns_study1)
+affect_compare_study1_ml <- target_independent_preproc(affect_compare_study1, no_feature_columns_study1)
+
+# study2
+affect_egemaps_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
+affect_compare_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
+affect_wordembeddings_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
+affect_egemaps_wordembeddings_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
 
 # save data
 
 # study1
-saveRDS(affect_speech_study1_ml, "data/study1/affect_speech_study1_ml.rds")
+saveRDS(affect_egemaps_study1_ml, "data/study1/affect_egemaps_study1_ml.rds")
+saveRDS(affect_compare_study1_ml, "data/study1/affect_compare_study1_ml.rds")
 
 # study2
-saveRDS(affect_speech_study2_ml, "data/study2/affect_speech_study2_ml.rds")
+saveRDS(affect_egemaps_study2_ml, "data/study2/affect_speech_study2_ml.rds")
+saveRDS(affect_compare_study2_ml, "data/study2/affect_speech_study2_ml.rds")
+saveRDS(affect_wordembeddings_study2_ml, "data/study2/affect_speech_study2_ml.rds")
+saveRDS(affect_egemaps_wordembeddings_study2_ml, "data/study2/affect_speech_study2_ml.rds")
 
 # FINISH

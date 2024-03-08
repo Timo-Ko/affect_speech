@@ -15,8 +15,8 @@ source("code/functions/sign_test_folds.R")
 ### READ IN DATA ####
 
 # study 1
-affect_egemaps_study1  <- readRDS("data/study1/affect_speech_study1_ml.rds")
-affect_compare_study1  <- readRDS("data/study1/affect_compare.RData")
+affect_egemaps_study1  <- readRDS("data/study1/affect_egemaps_ml.rds")
+affect_compare_study1  <- readRDS("data/study1/affect_compare_ml.RData")
 
 # remove illegal characters from colnames 
 colnames(affect_egemaps_study1) <- make.names(colnames(affect_egemaps_study1), unique = TRUE)
@@ -24,11 +24,11 @@ colnames(affect_compare_study1) <- make.names(colnames(affect_compare_study1), u
 
 # study 2
 affect_egemaps_study2  <- readRDS("data/study2/affect_acoustics.RData")
-#affect_compare_study2  <- readRDS("data/study2/affect_egemaps_study2.RData")
+affect_compare_study2  <- readRDS("data/study2/affect_egemaps_study2.RData")
 affect_wordembeddings_study2 <- readRDS("data/study2/affect_wordembeddings.RData")
 affect_egemaps_wordembeddings_study2 <- readRDS("data/study2/affect_acoustics_wordembeddings.RData")
 
-# remove punctuation from colnames 
+# remove illegal characters from colnames 
 colnames(affect_egemaps_study2) <- make.names(colnames(affect_egemaps_study2), unique = TRUE)
 
 #### CREATE TASKS: STUDY 1 ####
@@ -430,9 +430,9 @@ saveRDS(bmr_egemaps_gender_study1, "results/study1/bmr_egemaps_gender_study1.RDa
 
 bmgrid_egemaps_study1 = benchmark_grid(
   task = c(egemaps_valence_study1,
-           egemaps_arousal_study1#,
-           #egemaps_valence_diff_study1, # supplementary analyses 
-           #egemaps_arousal_diff_study1
+           egemaps_arousal_study1,
+           egemaps_valence_diff_study1, # supplementary analyses 
+           egemaps_arousal_diff_study1
   ),
   learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
@@ -450,13 +450,13 @@ saveRDS(bmr_egemaps_study1, "results/study1/bmr_egemaps_study1.RData") # save re
 po_preproc = po("pca", param_vals = list(rank. = 88), scale. = T) # extract 88 dimension from pca
 
 # combine training with pre-processing
-lrn_rf_at_po = po_preproc %>>% at_rf 
-lrn_rr_at_po = po_preproc %>>% at_rr 
+lrn_rf_po_pca = po_preproc %>>% lrn_rf_po
+lrn_rr_po_pca = po_preproc %>>% lrn_rr_po 
 
 bmgrid_compare = benchmark_grid(
   task = c(compare_valence, 
            compare_arousal),
-  learner = list(lrn_fl, lrn_rf_at_po,  lrn_rr_at_po),
+  learner = list(lrn_fl, lrn_rf_po_pca,  lrn_rf_po_pca),
   resampling = resampling
 )
 
