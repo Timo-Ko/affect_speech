@@ -15,7 +15,7 @@ source("code/functions/sign_test_folds.R")
 ### READ IN DATA ####
 
 # study 1
-affect_egemaps_study1  <- readRDS("data/study1/affect_egemaps.RData")
+affect_egemaps_study1  <- readRDS("data/study1/affect_speech_study1_ml.rds")
 affect_compare_study1  <- readRDS("data/study1/affect_compare.RData")
 
 # remove illegal characters from colnames 
@@ -345,10 +345,11 @@ rm(affect_wordembeddings)
 
 lrn_fl = lrn("regr.featureless")
 lrn_rf = lrn("regr.ranger", 
-             mtry = to_tune(1, round(length(egemaps_age_study1$col_roles$feature)*0.7)),
+             #mtry = to_tune(1, round(length(egemaps_age_study1$col_roles$feature)*0.7)),
              num.trees =1000) # random forest
-lrn_rr = lrn("regr.cv_glmnet",
-             alpha= to_tune(0,1)) # lasso
+lrn_rr = lrn("regr.cv_glmnet"#,
+             #alpha= to_tune(0,1)
+             ) # lasso
 
 # enable parallelization
 set_threads(lrn_fl, n = detectCores())
@@ -357,23 +358,33 @@ set_threads(lrn_rf, n = detectCores())
 
 #### HYPERPARAMETER TUNING ####
 
-at_rf = AutoTuner$new(
-  learner = lrn_rf,
-  resampling = rsmp("cv", folds = 5),
-  measure = msr("regr.mse"),
-  terminator = trm("evals", n_evals = 20),
-  tuner = tnr("random_search"),
-  store_models = TRUE
-)
+# this can be added later if desired
 
-at_rr = AutoTuner$new(
-  learner = lrn_rr,
-  resampling = rsmp("cv", folds = 5),
-  measure = msr("regr.mse"),
-  terminator = trm("evals", n_evals = 20),
-  tuner = tnr("random_search"),
-  store_models = TRUE
-)
+# at_rf = AutoTuner$new(
+#   learner = lrn_rf,
+#   resampling = rsmp("cv", folds = 5),
+#   measure = msr("regr.mse"),
+#   terminator = trm("evals", n_evals = 20),
+#   tuner = tnr("random_search"),
+#   store_models = TRUE
+# )
+# 
+# at_rr = AutoTuner$new(
+#   learner = lrn_rr,
+#   resampling = rsmp("cv", folds = 5),
+#   measure = msr("regr.mse"),
+#   terminator = trm("evals", n_evals = 20),
+#   tuner = tnr("random_search"),
+#   store_models = TRUE
+# )
+
+### PREPROCESSING IN CV ####
+
+po_impute = po("imputehist") # impute NAs with median
+
+# combine training with pre-processing
+lrn_rf_po = po_impute  %>>% lrn_rf
+lrn_rr_po = po_impute  %>>% lrn_rr
 
 #### RESAMPLING ####
 
@@ -419,15 +430,15 @@ saveRDS(bmr_egemaps_gender_study1, "results/study1/bmr_egemaps_gender_study1.RDa
 
 bmgrid_egemaps_study1 = benchmark_grid(
   task = c(egemaps_valence_study1,
-           egemaps_arousal_study1,
-           egemaps_valence_diff_study1, # supplementary analyses 
-           egemaps_arousal_diff_study1
+           egemaps_arousal_study1#,
+           #egemaps_valence_diff_study1, # supplementary analyses 
+           #egemaps_arousal_diff_study1
   ),
-  learner = list(lrn_fl, at_rf, at_rr),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
 )
 
-future::plan("multisession", workers = 10) # enable parallelization
+future::plan("multisession", workers = 5) # enable parallelization
 
 bmr_egemaps_study1 = benchmark(bmgrid_egemaps_study1, store_models = F, store_backends = F) # execute the benchmark
 
