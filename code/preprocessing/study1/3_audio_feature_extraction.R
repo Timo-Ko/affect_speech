@@ -8,7 +8,7 @@ lapply(packages, library, character.only = TRUE)
 
 # load data
 
-al_es <- readRDS("data/al_es.RData")
+al_es <- readRDS("data/study1/al_ema.RData")
 
 ### DETERMINE SENTENCE CONDITION ####
 
@@ -155,98 +155,21 @@ compare_feature_df <- merge(compare_feature_df, al_es[,c("id", "e_s_questionnair
 ## match w corresponding user ids
 
 egemaps_feature_df_all <- merge(egemaps_feature_df , na.omit(ps_esquestionnaire[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
-
 compare_feature_df_all <- merge(compare_feature_df , na.omit(ps_esquestionnaire[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
 
-
-# reorder columns
+# remove unneeded and reorder columns
 egemaps_feature_df_all  <- egemaps_feature_df_all  %>% 
+  dplyr::select(-c("name", "frameTime")) %>% 
   dplyr::select(c("id", "e_s_questionnaire_id", "user_id", "condition"),everything())
 
 compare_feature_df_all  <- compare_feature_df_all  %>% 
+  dplyr::select(-c("name", "frameTime")) %>% 
   dplyr::select(c("id", "e_s_questionnaire_id", "user_id", "condition"),everything())
 
+# merge voice features 
+voice_features <- merge(egemaps_feature_df_all, compare_feature_df_all, by = c("id", "e_s_questionnaire_id", "user_id", "condition"))
+
 # save
-saveRDS(egemaps_feature_df_all, "data/egemaps_features_all.RData")
-saveRDS(compare_feature_df_all, "data/compare_features_all.RData")
+saveRDS(voice_features, "data/study1/voice_features_study1.rds")
 
-### CLEAN DATA BASED ON VOICE INDICATORS ####
-
-# load data
-egemaps_feature_df_all <- readRDS("data/egemaps_features_all.RData")
-compare_feature_df_all <- readRDS("data/compare_features_all.RData")
-
-## filter out instances where a voice record has been made
-
-egemaps_feature_df_rec  <- egemaps_feature_df_all %>% 
-  filter(!is.na(frameTime))
-
-compare_feature_df_rec  <- compare_feature_df_all %>% 
-  filter(!is.na(frameTime))
-
-## find cases where participants did not record voice in their audio samples
-
-# there is a feature in the compare feature set that indicates the probability that human voice was recorded at all (values between 0 and 1)
-hist(compare_feature_df_rec$voicingFinalUnclipped_sma_amean, breaks = 1000) #plot distribution (two clear peaks)
-summary(compare_feature_df_rec$voicingFinalUnclipped_sma_amean)
-
-# find all instances with less than 50% percent probability that voice was recorded
-
-compare_feature_df_novoice <- compare_feature_df_rec %>% 
-  filter(voicingFinalUnclipped_sma_amean < 0.5)
-
-compare_feature_df_voice  <- compare_feature_df_rec %>% 
-  filter(voicingFinalUnclipped_sma_amean>= 0.5)
-
-
-# there is a feature set in the egemaps feature set that indicates how much voice was recorded (voiced segments per second)
-hist(egemaps_feature_df_rec$VoicedSegmentsPerSec, breaks = 1000) #plot (normal distribution)
-summary(egemaps_feature_df_rec$VoicedSegmentsPerSec)
-
-# remove cases where this is zero! TO DO with raw data!
-#VoicedSegmentsPerSec - Anzahl der Sprachsegmente pro Sekunde. Wenn Null, dürfte keine Sprache vorhanden sein.
-#MeanVoicedSegmentLengthSec - Mittlere Länge der Sprachsegmente in Sekunden. Wenn Null, dürfte keine Sprache vorhanden sein.
-hist(egemaps_feature_df_rec$MeanVoicedSegmentLengthSec, breaks = 1000) #plot (normal distribution)
-
-# investigate descriptives of instances without voice
-
-length(unique(compare_feature_df_novoice$e_s_questionnaire_id)) # the no voice records come from 1908 ES instances
-length(unique(compare_feature_df_novoice$user_id)) # the no voice records come from 514 participants
-
-# count no voice records per participant
-novoice_user <- compare_feature_df_novoice %>% 
-  group_by(user_id) %>% 
-  count(sort =T, name = "n_novoice")
-
-# count voice records per participant
-voice_user <- compare_feature_df_voice %>% 
-  group_by(user_id) %>% 
-  count(sort =T, name = "n_voice")
-
-# merge and compute share of voice containing records in all records
-voiceshare_user = merge(voice_user, novoice_user)
-
-voiceshare_user$n_total = voiceshare_user$n_voice + voiceshare_user$n_novoice
-voiceshare_user$voice_share = voiceshare_user$n_voice / voiceshare_user$n_total
-
-hist(voiceshare_user$voice_share, breaks = 10)
-
-table(no_voice$condition) # no meaningful differences across sentence conditions
-
-no_voice_id <- compare_feature_df_novoice$id # get ids of no voice records
-
-# removes no voice instances from egemaps and compare feature sets
-
-`%!in%` <- Negate(`%in%`)
-
-egemaps_feature_df_cleaned <- egemaps_feature_df_rec %>% 
-  filter(id %!in% no_voice_id )
-
-compare_feature_df_cleaned <- compare_feature_df_rec %>% 
-  filter(id %!in% no_voice_id )
-
-# save cleaned dfs
-saveRDS(egemaps_feature_df_cleaned, "study1_ger/data/egemaps_features.RData")
-saveRDS(compare_feature_df_cleaned, "study1_ger/data/compare_features.RData")
-
-## FINISH
+# finish

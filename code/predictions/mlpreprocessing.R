@@ -10,8 +10,7 @@ source("code/functions/target_independent_preproc.R")
 # load data
 
 # study 1
-affect_egemaps_study1 <- readRDS(file="data/study1/affect_egemaps_study1.RData") 
-affect_compare_study1 <- readRDS(file="data/study1/affect_compare_study1.RData") 
+affect_voice_study1 <- readRDS(file="data/study1/affect_voice_study1.rds") 
 
 # study 2
 affect_egemaps_study2 <- readRDS(file="data/study2/affect_acoustics.RData") 
@@ -29,8 +28,7 @@ no_feature_columns_study2 = c("user_id", "timestamp", "Age", "Gender", "content"
 # apply functions for target-independent preprocessing
 
 # study1
-affect_egemaps_study1_ml <- target_independent_preproc(affect_egemaps_study1, no_feature_columns_study1)
-affect_compare_study1_ml <- target_independent_preproc(affect_compare_study1, no_feature_columns_study1)
+affect_voice_study1_ml <- target_independent_preproc(affect_voice_study1, no_feature_columns_study1)
 
 # study2
 affect_egemaps_study2_ml <- target_independent_preproc(affect_speech_study1, no_feature_columns_study2)
@@ -44,8 +42,7 @@ affect_egemaps_wordembeddings_study2_ml <- target_independent_preproc(affect_spe
 # save data
 
 # study1
-saveRDS(affect_egemaps_study1_ml, "data/study1/affect_egemaps_study1_ml.rds")
-saveRDS(affect_compare_study1_ml, "data/study1/affect_compare_study1_ml.rds")
+saveRDS(affect_voice_study1_ml, "data/study1/affect_voice_study1_ml.rds")
 
 # study2
 saveRDS(affect_egemaps_study2_ml, "data/study2/affect_speech_study2_ml.rds")

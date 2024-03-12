@@ -2,12 +2,12 @@
 
 ## read in data
 
-affect_df_raw <- readRDS("data/study1/affect_df_raw.RData")
+affect_voice <- readRDS("data/study1/affect_voice_study1.rds")
 
 ## remove participants with less than 10 experience sampling instances
 
 # count how many es instances with valence and arousal ratings are available per participant
-count_es_user <- affect_df_raw %>% 
+count_es_user <- affect_voice %>% 
   dplyr::group_by(user_id) %>% 
   dplyr::count(sort =T)
 
@@ -19,137 +19,120 @@ enoughes_user <- count_es_user[ count_es_user$n >=10, "user_id"]
 
 enoughes_user <- pull(enoughes_user) # format
 
-affect_df <- affect_df_raw[ affect_df_raw$user_id %in% enoughes_user ,] #remove participants with less than 10 es instances
+affect_voice <- affect_voice[ affect_voice$user_id %in% enoughes_user ,] #remove participants with less than 10 es instances
 
 # compute variance in valence and arousal responses per participant
-var_es_user <- affect_df %>%
+var_es_user <- affect_voice %>%
   dplyr::group_by(user_id) %>%
   dplyr::mutate(var_valence = var(valence, na.rm = T), var_arousal = var(arousal, na.rm = T)) %>%
   dplyr::slice(1) #keep one row per user 
 
 # find participants with zero variance in their valence AND arousal responses across all their es (they were probably straightlining)
-length(which(var_es_user$var_valence == 0 & var_es_user$var_arousal == 0)) # 11 participants fall into the straightliner category
+length(which(var_es_user$var_valence == 0 & var_es_user$var_arousal == 0)) # 4 participants fall into the straightliner category
 
 # find participants with variance in their responses
 variancees_user <- var_es_user[ var_es_user$var_valence != 0  | var_es_user$var_arousal != 0, "user_id"]
 
 variancees_user <- pull(variancees_user) # format
 
-affect_df <- affect_df[ affect_df$user_id %in% variancees_user ,] #remove straightliners
+affect_voice <- affect_voice[ affect_voice$user_id %in% variancees_user ,] #remove straightliners
 
-## compute affect baseline per participant
+## supplementary analysis: compute affect baseline per participant
 
 # compute median valence and arousal per participant as baseline ("trait") score
 
-median_affect_user <- affect_df %>% 
+median_affect_user <- affect_voice  %>% 
   dplyr::group_by(user_id) %>%
   dplyr::mutate(md_valence = median(valence, na.rm =T), md_arousal = median(arousal, na.rm =T)) %>%
   dplyr::slice(1) #keep one row per user 
 
 # append median affect column to affect df
-affect_df <- merge(affect_df, median_affect_user[,c("user_id", "md_valence", "md_arousal")], by = "user_id")
+affect_voice <- merge(affect_voice, median_affect_user[,c("user_id", "md_valence", "md_arousal")], by = "user_id")
 
 # compute deviation of current affect from baseline for each participant
-affect_df$diff_valence <- affect_df$valence - affect_df$md_valence
-affect_df$diff_arousal <- affect_df$arousal - affect_df$md_arousal
+affect_voice$diff_valence <- as.numeric(affect_voice$valence - affect_voice$md_valence)
+affect_voice$diff_arousal <- as.numeric(affect_voice$arousal - affect_voice$md_arousal)
 
-# save final df
-saveRDS(affect_df, "data/study1/affect_df.RData")
-
-### DESCRIPTIVES OF FINAL AFFECT DATA ####
-
-# distribution of raw valence and arousal ratings across es instances
-hist(affect_df$valence)
-hist(affect_df$arousal)
-
-table(affect_df$valence)
-table(affect_df$arousal)
-
-# distribution of valence and arousal differences from participants' baseline across es instances
-hist(affect_df$diff_valence)
-hist(affect_df$diff_arousal)
-
-table(affect_df$diff_valence)
-table(affect_df$diff_arousal)
-
+# arrange cols
+affect_voice <- affect_voice  %>% 
+  dplyr::select(c("e_s_questionnaire_id", "questionnaireStartedTimestamp", "id", "user_id" , "Demo_A1", "Demo_GE1", "condition", "valence", "md_valence", "diff_valence", "arousal", "md_arousal", "diff_arousal"), everything())
 
 ### CLEAN DATA BASED ON VOICE INDICATORS ####
-
-# load data
-egemaps_feature_df_all <- readRDS("data/egemaps_features_all.RData")
-compare_feature_df_all <- readRDS("data/compare_features_all.RData")
-
-## filter out instances where a voice record has been made
-
-egemaps_feature_df_rec  <- egemaps_feature_df_all %>% 
-  filter(!is.na(frameTime))
-
-compare_feature_df_rec  <- compare_feature_df_all %>% 
-  filter(!is.na(frameTime))
 
 ## find cases where participants did not record voice in their audio samples
 
 # there is a feature in the compare feature set that indicates the probability that human voice was recorded at all (values between 0 and 1)
-hist(compare_feature_df_rec$voicingFinalUnclipped_sma_amean, breaks = 1000) #plot distribution (two clear peaks)
-summary(compare_feature_df_rec$voicingFinalUnclipped_sma_amean)
+hist(affect_voice$voicingFinalUnclipped_sma_amean, breaks = 1000) #plot distribution 
+hist(affect_voice$VoicedSegmentsPerSec, breaks = 1000) #plot (normal distribution)
+hist(affect_voice$MeanVoicedSegmentLengthSec, breaks = 1000) #plot (normal distribution)
 
-# find all instances with less than 50% percent probability that voice was recorded
+# remove all instances based on those features
 
-compare_feature_df_novoice <- compare_feature_df_rec %>% 
-  filter(voicingFinalUnclipped_sma_amean < 0.5)
+affect_voice_cleaned  <- affect_voice %>% 
+  dplyr::filter(voicingFinalUnclipped_sma_amean >= 0.5) %>%
+  dplyr::filter(VoicedSegmentsPerSec >0) %>%
+  dplyr::filter(MeanVoicedSegmentLengthSec >0)
 
-compare_feature_df_voice  <- compare_feature_df_rec %>% 
-  filter(voicingFinalUnclipped_sma_amean>= 0.5)
-
-
-# there is a feature set in the egemaps feature set that indicates how much voice was recorded (voiced segments per second)
-hist(egemaps_feature_df_rec$VoicedSegmentsPerSec, breaks = 1000) #plot (normal distribution)
-summary(egemaps_feature_df_rec$VoicedSegmentsPerSec)
-
-# remove cases where this is zero! TO DO with raw data!
-#VoicedSegmentsPerSec - Anzahl der Sprachsegmente pro Sekunde. Wenn Null, dürfte keine Sprache vorhanden sein.
-#MeanVoicedSegmentLengthSec - Mittlere Länge der Sprachsegmente in Sekunden. Wenn Null, dürfte keine Sprache vorhanden sein.
-hist(egemaps_feature_df_rec$MeanVoicedSegmentLengthSec, breaks = 1000) #plot (normal distribution)
-
-# investigate descriptives of instances without voice
-
-length(unique(compare_feature_df_novoice$e_s_questionnaire_id)) # the no voice records come from 1908 ES instances
-length(unique(compare_feature_df_novoice$user_id)) # the no voice records come from 514 participants
-
-# count no voice records per participant
-novoice_user <- compare_feature_df_novoice %>% 
-  group_by(user_id) %>% 
-  count(sort =T, name = "n_novoice")
-
-# count voice records per participant
-voice_user <- compare_feature_df_voice %>% 
-  group_by(user_id) %>% 
-  count(sort =T, name = "n_voice")
-
-# merge and compute share of voice containing records in all records
-voiceshare_user = merge(voice_user, novoice_user)
-
-voiceshare_user$n_total = voiceshare_user$n_voice + voiceshare_user$n_novoice
-voiceshare_user$voice_share = voiceshare_user$n_voice / voiceshare_user$n_total
-
-hist(voiceshare_user$voice_share, breaks = 10)
-
-table(no_voice$condition) # no meaningful differences across sentence conditions
-
-no_voice_id <- compare_feature_df_novoice$id # get ids of no voice records
-
-# removes no voice instances from egemaps and compare feature sets
-
-`%!in%` <- Negate(`%in%`)
-
-egemaps_feature_df_cleaned <- egemaps_feature_df_rec %>% 
-  filter(id %!in% no_voice_id )
-
-compare_feature_df_cleaned <- compare_feature_df_rec %>% 
-  filter(id %!in% no_voice_id )
+# # investigate descriptives of instances without voice
+# 
+# length(unique(compare_feature_df_novoice$e_s_questionnaire_id)) # the no voice records come from 1908 ES instances
+# length(unique(compare_feature_df_novoice$user_id)) # the no voice records come from 514 participants
+# 
+# # count no voice records per participant
+# novoice_user <- compare_feature_df_novoice %>% 
+#   group_by(user_id) %>% 
+#   count(sort =T, name = "n_novoice")
+# 
+# # count voice records per participant
+# voice_user <- compare_feature_df_voice %>% 
+#   group_by(user_id) %>% 
+#   count(sort =T, name = "n_voice")
+# 
+# # merge and compute share of voice containing records in all records
+# voiceshare_user = merge(voice_user, novoice_user)
+# 
+# voiceshare_user$n_total = voiceshare_user$n_voice + voiceshare_user$n_novoice
+# voiceshare_user$voice_share = voiceshare_user$n_voice / voiceshare_user$n_total
+# 
+# hist(voiceshare_user$voice_share, breaks = 10)
+# 
+# table(no_voice$condition) # no meaningful differences across sentence conditions
+# 
+# no_voice_id <- compare_feature_df_novoice$id # get ids of no voice records
+# 
+# # removes no voice instances from voice and compare feature sets
+# 
+# `%!in%` <- Negate(`%in%`)
+# 
+# voice_feature_df_cleaned <- voice_feature_df_rec %>% 
+#   filter(id %!in% no_voice_id )
 
 # save cleaned dfs
-saveRDS(egemaps_feature_df_cleaned, "study1_ger/data/egemaps_features.RData")
-saveRDS(compare_feature_df_cleaned, "study1_ger/data/compare_features.RData")
+saveRDS(affect_voice_cleaned, "study1/data/affect_voice_cleaned.rds")
+
+### DESCRIPTIVES OF FINAL DATA ####
+
+# number of participants
+length(unique(affect_voice_cleaned$user_id))
+
+# number of es
+length(unique(affect_voice_cleaned$e_s_questionnaire_id))
+
+# number of audio logs
+dim(affect_voice_cleaned)
+
+# distribution of raw valence and arousal ratings across es instances
+hist(affect_voice_cleaned$valence)
+hist(affect_voice_cleaned$arousal)
+
+table(affect_voice_cleaned$valence)
+table(affect_voice_cleaned$arousal)
+
+# distribution of valence and arousal differences from participants' baseline across es instances
+hist(affect_voice_cleaned$diff_valence)
+hist(affect_voice_cleaned$diff_arousal)
+
+table(affect_voice_cleaned$diff_valence)
+table(affect_voice_cleaned$diff_arousal)
 
 ## FINISH
