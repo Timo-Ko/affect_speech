@@ -59,7 +59,7 @@ affiliation:
 
 authornote: |
   Conflict of interest: none
-  Acknowledgements: We thank Peter Ehrich and Dominik Heinrich for their support with the technical implementation of the on-device acoustic feature extraction for study 1. We thank ZPID for the support with data collection for study 1. Thanks Sumer Vaid for technical support in the analyses of study 2. This project was supported by a scholarship of the German Academic Scholarship Foundation awarded to the first author.
+  Acknowledgements: We thank Peter Ehrich and Dominik Heinrich for their support with the technical implementation of the on-device voice feature extraction and the ZPID for the support with data collection for study 1. Thank you Sumer Vaid for the technical support with the set up of the environment for the analyses of study 2. This project was supported by the Swiss National Science Foundation (SNSF) under project number 215303 and a scholarship of the German Academic Scholarship Foundation awarded to the first author.
   All materials are available in the project’s repository on the Open Science Framework (OSF): https://osf.io/a5db8/
 
 abstract: |
@@ -108,9 +108,9 @@ Research findings on the algorithmic recognition of affective states (e.g., emot
 <!-- voice cues AND speech content; Studies on affect expression, very good performance reported! -->
 Researchers have successfully predicted affective states from a range of speech data, such as labelled TV clips [@grimmVeraAmMittag2008], phone calls, and enacted speech samples from the lab [@banzigerIntroducingGenevaMultimodal2012; @burkhardtDatabaseGermanEmotional2005a; @schullerSpeechEmotionRecognition2018; @vogtAutomaticRecognitionEmotions2008]. They report on impressive prediction performances for the automatic recognition of emotions (i.e., correlations between true scores and predicted scores of up to .81 for arousal and .68 for valence predictions) [@weningerAcousticsEmotionAudio2013]. However, one has to keep in mind that in those works the enacted target emotion or the rater labels serve as ground truth. Thereby, these works predict affect *expression*, which is considered easier to algorithmically recognize than real-life *experienced* affect [@vogtAutomaticRecognitionEmotions2008]. There is a fundamental difference between what affect we express and what affect we actually experience, even though there is an overlap to a varying degree. Affect *expression* represents the emotional expressive behavior based on our internal affect *experience*. However, "feeling is not always revealing", i.e., one does not necessarily express what one experiences affectively or might even express something completely different [@grossRevealingFeelingsFacets1997; @grossDissociationEmotionExpression2000]. Furthermore, the way one expresses affect might be perceived and interpreted differently. Figure \@ref(fig:experiencevsexpression) depicts this distinction. Moreover, the prediction performance varies greatly across studies due to a varying choice of emotion targets (i.e., discrete emotion versus core affect), conceptualizations of affect (e.g., short-termed elicited emotions versus moods), and employed algorithms (e.g., supervised versus unsupervised machine learning). 
 
-```{r experiencevsexpression, echo = FALSE, warning=FALSE, fig.cap="The difference of subjective affect experience and observable affect expression.", fig.scap= "Feature importance", out.width="100%", fig.align="center", results="asis"}
+```{r experiencevsexpression, echo = FALSE, warning=FALSE, fig.cap="The difference of subjective affect experience and observable affect expression.", fig.scap= "Feature importance", out.width="75%", fig.align="center", results="asis"}
 
-knitr::include_graphics(path = "../figures/experienc_vs_expression.png")
+knitr::include_graphics(path = "../figures/experience_vs_expression.png")
 ```
 
 <!-- Back box models, Affect-Linked Speech Cues (voice and spoken content) - affect association -->
@@ -149,10 +149,10 @@ library("dplyr")
 # egemaps_features_all  <- readRDS("../study1_ger/data/egemaps_features_all.RData") 
 
 # all voice samples after voice quality check
-egemaps_features  <- readRDS("data/study1/egemaps_features.RData") 
+egemaps_features  <- readRDS("../data/study1/egemaps_features.RData") 
 
 # final merged data set of voice data with esm data
-affect_egemaps  <- readRDS("data/study1/affect_egemaps.RData") #load data
+affect_egemaps  <- readRDS("../data/study1/affect_egemaps.RData") #load data
 
 # show distribution of sentence conditions
 # table(affect_egemaps$condition)
@@ -196,7 +196,7 @@ library("dplyr")
 # egemaps_features  <- readRDS("../study2_us/data/egemaps_features.RData")
 # 
 # final merged data set of voice data with esm data
-affect_egemaps_wordembeddings  <- readRDS("../study2_us/data/affect_acoustics_wordembeddings.RData") #load data
+affect_egemaps_wordembeddings  <- readRDS("../data/study2/affect_acoustics_wordembeddings.RData") #load data
 
 ```
 
@@ -233,10 +233,10 @@ library(mlr3)
 
 #load data
 
-bmr_egemaps_age <- readRDS("../study1_ger/results/bmr_egemaps_age.RData") 
-bmr_egemaps_gender <- readRDS("../study1_ger/results/bmr_egemaps_gender.RData") 
+bmr_egemaps_age <- readRDS("../results/study1/bmr_egemaps_age.RData") 
+bmr_egemaps_gender <- readRDS("../results/study1/bmr_egemaps_gender.RData") 
 
-bmr_egemaps <- readRDS("../study1_ger/results/bmr_egemaps.RData") 
+bmr_egemaps <- readRDS("../results/study1/bmr_egemaps.RData") 
 
 mes = mlr3::msrs(c( "regr.rsq", "regr.srho")) # set performance measures
 
@@ -253,10 +253,10 @@ mes_egemaps <- bmr_egemaps$aggregate(mes)
 library(mlr3)
 
 #load data
-bmr_age <- readRDS("../study2_us/results/bmr_age.RData")
-bmr_gender <- readRDS("../study2_us/results/bmr_gender.RData")
+bmr_age <- readRDS("../results/study2/bmr_age.RData")
+bmr_gender <- readRDS("../results/study2/bmr_gender.RData")
 
-bmr_egemaps_wordembeddings <- readRDS("../study2_us/results/bmr_egemaps_wordembeddings.RData")
+bmr_egemaps_wordembeddings <- readRDS("../results/study2/bmr_egemaps_wordembeddings.RData")
 
 mes = mlr3::msrs(c( "regr.rsq", "regr.srho")) # set performance measures
 
@@ -282,7 +282,7 @@ Also, models trained only on voice acoustics or word embedding respectively reve
 <!-- some words about algo performance - LASSO vs RF -->
 For voice acoustics, the Random Forest algorithm performed slightly better than the LASSO algorithm, suggesting non-linear relationships between voice cues and affect experience. On the contrary, for word embeddings, LASSO models performed better than Random Forest models, indicating linear predictor-outcome relationships between speech content as captured with word embeddings and momentary affect experience.
 
-```{r predictionoverview, echo = FALSE, warning=FALSE, fig.cap="Box and whisker plot of prediction performance measures from 10-fold cross-validation for prediction models.", fig.scap= "Prediction performance", out.width="100%", out.height="45%", fig.align="center", results="asis"}
+```{r predictionoverview, echo = FALSE, warning=FALSE, fig.cap="Box and whisker plot of prediction performance measures from 10-fold cross-validation for prediction models.", fig.scap= "Prediction performance", out.width="100%", out.height="75%", fig.align="center", results="asis"}
 
 knitr::include_graphics(path = "../figures/bmr_plot.png")
 ```
@@ -299,7 +299,7 @@ Figure \@ref(fig:featureimportance) shows the five most important features in th
 
 ```{r featureimportance, echo = FALSE, warning=FALSE, fig.cap="Permutation feature importance for the five most predictive features in the Random Forest model for the prediction of arousal. Permutation feature importance represents the decrease in the model's prediction performance (as measured by RMSE) after permuting a single variable.", fig.scap= "Feature importance", out.width="100%", fig.align="center", results="asis"}
 
-knitr::include_graphics(path = "../figures/feat_imp.png")
+knitr::include_graphics(path = "../figures/importance_rf_arousal_plot.png")
 ```
 
 
@@ -309,7 +309,7 @@ knitr::include_graphics(path = "../figures/feat_imp.png")
 
 library(car)
 
-predictions_condition <- readRDS(file="../study1_ger/results/predictions_condition.RData")
+predictions_condition <- readRDS(file="../results/study1/predictions_condition.RData")
 
 # run anova comparing means for valence 
 aov_valence <- car::Anova(aov(error_valence ~ condition, data = predictions_condition))

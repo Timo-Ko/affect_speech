@@ -10,13 +10,13 @@ lapply(packages, library, character.only = TRUE)
 
 ## explore bucket with data
 
-# this is the gs util path of the bucket
-bucket_path = "'gs://sable_data_2018/Opensmile Audio Features'"
-
-# create a list of all files in the bucket
-list_cmd = paste("gsutil ls -r ", bucket_path, sep = "")
-list_of_files = system(list_cmd, intern = TRUE)
-list_of_files
+# # this is the gs util path of the bucket
+# bucket_path = "'gs://sable_data_2018/Opensmile Audio Features'"
+# 
+# # create a list of all files in the bucket
+# list_cmd = paste("gsutil ls -r ", bucket_path, sep = "")
+# list_of_files = system(list_cmd, intern = TRUE)
+# list_of_files
 
 ## download files, only do this once!
 
@@ -82,14 +82,14 @@ compare_features <- compare_features %>%
 compare_features$user_id <- str_sub(compare_features$user_id, end=-5)
 
 # append compare features
-affect_acoustics <- merge(affect_egemaps, compare_features, by = c("user_id", "timestamp"))
+affect_voice <- merge(affect_egemaps, compare_features, by = c("user_id", "timestamp"))
 
 ### FILTER INSTANCES BASED ON VOICE DATA ####
 
 # inclusion criteria:
 # min 4 secs of file duration and min 15 words spoken (comparable to GER study) and must contain human voice
 
-affect_acoustics_enoughvoice <- affect_acoustics %>% 
+affect_voice_enoughvoice <- affect_voice %>% 
   filter(File.duration.in.seconds >= 4) %>% # min 4 seconds of file length
   filter(Total.words >= 15) %>% # min 15 word spoken
   filter(voicingFinalUnclipped_sma_amean >= 0.5) %>% # min 50% chance that human voice had been recorded
@@ -101,7 +101,7 @@ affect_acoustics_enoughvoice <- affect_acoustics %>%
 ## remove participants with less than 10 EMA instances 
 
 # count how many es instances with ema ratings are available per participant
-count_es_user <- affect_acoustics_enoughvoice %>% 
+count_es_user <- affect_voice_enoughvoice %>% 
   dplyr::group_by(user_id) %>% 
   dplyr::count(sort =T)
 
@@ -115,10 +115,10 @@ enoughes_user <- count_es_user[ count_es_user$n >= 10, "user_id"]
 
 enoughes_user <- pull(enoughes_user) # format
 
-affect_acoustics_filtered <- affect_acoustics_enoughvoice[ affect_acoustics_enoughvoice$user_id %in% enoughes_user ,] #remove participants with less than 5 es days
+affect_voice_filtered <- affect_voice_enoughvoice[ affect_voice_enoughvoice$user_id %in% enoughes_user ,] #remove participants with less than 5 es days
 
 # compute variance in ema responses per participant
-var_es_user <- affect_acoustics_filtered %>%
+var_es_user <- affect_voice_filtered %>%
   dplyr::group_by(user_id) %>%
   dplyr::mutate(var_content = var(content, na.rm = T), var_sad = var(sad, na.rm = T), var_arousal = var(arousal, na.rm = T)) %>%
   dplyr::slice(1) #keep one row per user 
@@ -131,55 +131,55 @@ variancees_user <- var_es_user[ var_es_user$var_content > 0  | var_es_user$var_s
 
 variancees_user <- pull(variancees_user) # format
 
-affect_acoustics_filtered <- affect_acoustics_filtered[affect_acoustics_filtered$user_id %in% variancees_user ,] #remove straight liners
+affect_voice_filtered <- affect_voice_filtered[affect_voice_filtered$user_id %in% variancees_user ,] #remove straight liners
 
 ### COMPUTE BASELINE AFFECT PER PARTICIPANT ####
 
 # compute median contentedness, sadness and arousal per participant as baseline ("trait") score
 
-median_affect_user <- affect_acoustics_filtered %>% 
+median_affect_user <- affect_voice_filtered %>% 
   dplyr::group_by(user_id) %>%
   dplyr::mutate(md_content = median(content, na.rm =T), md_sad = median(sad, na.rm =T), md_arousal = median(arousal, na.rm =T)) %>%
   dplyr::slice(1) #keep one row per user 
 
 # append median affect column to df
-affect_acoustics <- merge(affect_acoustics_filtered , median_affect_user[,c("user_id", "md_content", "md_sad", "md_arousal")], by = "user_id")
+affect_voice <- merge(affect_voice_filtered , median_affect_user[,c("user_id", "md_content", "md_sad", "md_arousal")], by = "user_id")
 
 # compute deviation of current affect from baseline for each participant
-affect_acoustics$diff_content <- affect_acoustics$content - affect_acoustics$md_content
-affect_acoustics$diff_sad <- affect_acoustics$sad - affect_acoustics$md_sad
-affect_acoustics$diff_arousal <- affect_acoustics$arousal - affect_acoustics$md_arousal
+affect_voice$diff_content <- affect_voice$content - affect_voice$md_content
+affect_voice$diff_sad <- affect_voice$sad - affect_voice$md_sad
+affect_voice$diff_arousal <- affect_voice$arousal - affect_voice$md_arousal
 
 # reorder columns 
-affect_acoustics <- affect_acoustics  %>% 
+affect_voice <- affect_voice  %>% 
   dplyr::select(c("user_id" , "content", "md_content", "diff_content", "sad", "md_sad", "diff_sad", "arousal", "md_arousal", "diff_arousal"),everything())
 
 # save final df
-saveRDS(affect_acoustics, "data/study2/affect_acoustics.RData")
+saveRDS(affect_voice, "data/study2/affect_voice.rds")
 
 ### DESCRIPTIVES OF FINAL AFFECT DATA ####
 
 # distribution of raw content and sad ratings across es instances
-hist(affect_acoustics$content)
-hist(affect_acoustics$sad)
-hist(affect_acoustics$arousal)
+hist(affect_voice$content)
+hist(affect_voice$sad)
+hist(affect_voice$arousal)
 
-table(affect_acoustics$content)
-table(affect_acoustics$sad)
-table(affect_acoustics$arousal)
+table(affect_voice$content)
+table(affect_voice$sad)
+table(affect_voice$arousal)
 
 # distribution of differences from participants' baseline across es instances
-hist(affect_acoustics$diff_content)
-hist(affect_acoustics$diff_sad)
-hist(affect_acoustics$diff_arousal)
+hist(affect_voice$diff_content)
+hist(affect_voice$diff_sad)
+hist(affect_voice$diff_arousal)
 
-table(affect_acoustics$diff_content)
-table(affect_acoustics$diff_sad)
-table(affect_acoustics$diff_arousal)
+table(affect_voice$diff_content)
+table(affect_voice$diff_sad)
+table(affect_voice$diff_arousal)
 
 # demographics
 
-affect_acoustics %>% group_by(user_id) %>% mutate (m_age = mean(Age, na.rm = T))
+affect_voice %>% group_by(user_id) %>% mutate (m_age = mean(Age, na.rm = T))
 
 
 # finish
