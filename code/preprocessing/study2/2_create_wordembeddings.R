@@ -20,26 +20,63 @@ affect_voice <- readRDS("data/study2/affect_voice.rds")
 
 ### CREATE WORDEMBEDDINGS FROM TRANSCRIPTS ####
 
-# get time
-T1 <- Sys.time()
-T1
+# extract embeddings in batches
 
-# transform the text data to word embeddings
-wordembeddings_robertalarge <- textEmbed(affect_voice$Text, 
-                            model = 'roberta-large', # we are using the large roberta model
-                            layers = 23, # second to last (layer 23) as standard approach
-                            tokenizer_parallelism = T) 
+texts <- affect_voice$Text
 
-# save results
-saveRDS(wordembeddings_robertalarge, "data/study2/wordembeddings_robertalarge.RData")
+batch_size <- 100
+n <- length(affect_voice$Text)
+n_batches <- ceiling(n / batch_size)
 
-# Save stopping time
-T2 <- Sys.time()
-T2
+embeddings <- list()
 
-T2-T1 # compute time difference
-# takes approx 16 hrs for roberta base, layer 11, 18k rows
-# takes 17 hrs for roberta large layer 23, 13k rows
+for(i in 1:n_batches) {
+  start_index <- ((i - 1) * batch_size) + 1
+  end_index <- min(i * batch_size, n)
+  batch_texts <- texts[start_index:end_index]
+  
+  # Extract embeddings for this batch
+  batch_embeddings <- textEmbed(batch_texts, 
+                                model = 'roberta-large', # we are using the large roberta model
+                                layers = 23, # second to last (layer 23) as standard approach
+                                tokenizer_parallelism = T) 
+  
+  # save batch embeddings
+  saveRDS(batch_embeddings$texts$texts, paste0("data/study2/word_embeddings/batches/batch", i, ".rds"))
+  
+  # write status
+  print(paste(Sys.time(),":Embedding batch",i , "of", n_batches, "completed"))
+  
+  # remove embeddings from this batch to free up memory before next iteration
+  rm(batch_embeddings)
+}
+
+# load all batches
+
+# Combine embeddings from all batches
+wordembeddings_robertalarge <- do.call(rbind, embeddings)
+
+
+# 
+# # get time
+# T1 <- Sys.time()
+# T1
+# 
+# # transform the text data to word embeddings
+# wordembeddings_robertalarge <- textEmbed(affect_voice$Text, 
+#                             model = 'roberta-large', # we are using the large roberta model
+#                             layers = 23) # second to last (layer 23) as standard approach
+# 
+# # save results
+# saveRDS(wordembeddings_robertalarge, "data/study2/wordembeddings_robertalarge.RData")
+# 
+# # Save stopping time
+# T2 <- Sys.time()
+# T2
+# 
+# T2-T1 # compute time difference
+# # takes approx 16 hrs for roberta base, layer 11, 18k rows
+# # takes 17 hrs for roberta large layer 23, 13k rows
 
 ### APPEND EMBEDDING FEATURES ####
 
