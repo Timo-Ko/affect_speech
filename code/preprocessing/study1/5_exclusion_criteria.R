@@ -1,5 +1,7 @@
 ### FILTED DATA BASED ON AFFECT DATA ####
 
+library(dplyr)
+
 ## read in data
 
 affect_voice <- readRDS("data/study1/affect_voice_study1.rds")
@@ -108,7 +110,7 @@ affect_voice_cleaned  <- affect_voice %>%
 #   filter(id %!in% no_voice_id )
 
 # save cleaned dfs
-saveRDS(affect_voice_cleaned, "study1/data/affect_voice_cleaned.rds")
+saveRDS(affect_voice_cleaned, "data/study1/affect_voice_study1_cleaned.rds")
 
 ### DESCRIPTIVES OF FINAL DATA ####
 
