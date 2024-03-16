@@ -52,12 +52,20 @@ for(i in 1:n_batches) {
 }
 
 # load all batches
+folder_path <- "data/study2/word_embeddings/batches"
 
-# Combine embeddings from all batches
-wordembeddings_robertalarge <- do.call(rbind, embeddings)
+# List all .rds files in the folder
+rds_files <- list.files(folder_path, pattern = "\\.rds$", full.names = TRUE)
 
+# Read each .rds file and store the data frames in a list
+list_of_dfs <- lapply(rds_files, readRDS)
 
-# 
+# Combine all data frames into one large data frame
+wordembeddings_robertalarge <- do.call(rbind, list_of_dfs)
+
+# save results
+saveRDS(wordembeddings_robertalarge, "data/study2/wordembeddings_robertalarge.rds")
+
 # # get time
 # T1 <- Sys.time()
 # T1
@@ -81,12 +89,12 @@ wordembeddings_robertalarge <- do.call(rbind, embeddings)
 ### APPEND EMBEDDING FEATURES ####
 
 # read in word embeddings
-wordembeddings_robertalarge <- readRDS("data/study2/wordembeddings_robertalarge.RData")
+wordembeddings_robertalarge <- readRDS("data/study2/wordembeddings_robertalarge.rds")
 
 # create df that contains voice AND wordembedding features
-affect_voice_wordembeddings <- cbind(affect_voice, wordembeddings_robertalarge$texts$texts)
+affect_voice_wordembeddings <- cbind(affect_voice, wordembeddings_robertalarge)
 
 # save data
-saveRDS(affect_egemaps_wordembeddings, "data/study2/affect_voice_wordembeddings.rds")
+saveRDS(affect_voice_wordembeddings, "data/study2/affect_voice_wordembeddings.rds")
 
 # FINISH
