@@ -94,6 +94,9 @@ wordembeddings_robertalarge <- readRDS("data/study2/wordembeddings_robertalarge.
 # create df that contains voice AND wordembedding features
 affect_voice_wordembeddings <- cbind(affect_voice, wordembeddings_robertalarge)
 
+# remove text column
+affect_voice_wordembeddings$Text <- NULL
+
 # save data
 saveRDS(affect_voice_wordembeddings, "data/study2/affect_voice_wordembeddings.rds")
 

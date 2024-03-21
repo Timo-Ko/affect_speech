@@ -147,10 +147,13 @@ rm(compare_values)
 
 };
 
-
 # append questionnaire id and user id
 egemaps_feature_df <- merge(egemaps_feature_df, al_es[,c("id", "e_s_questionnaire_id")], by = "id")
 compare_feature_df <- merge(compare_feature_df, al_es[,c("id", "e_s_questionnaire_id")], by = "id")
+
+# save feature sets
+saveRDS(egemaps_feature_df, "data/study1/egemaps_feature_df.rds")
+saveRDS(compare_feature_df, "data/study1/compare_feature_df.rds")
 
 ## match w corresponding user ids
 
@@ -160,14 +163,14 @@ compare_feature_df_all <- merge(compare_feature_df , na.omit(ps_esquestionnaire[
 # remove unneeded and reorder columns
 egemaps_feature_df_all  <- egemaps_feature_df_all  %>% 
   dplyr::select(-c("name", "frameTime")) %>% 
-  dplyr::select(c("id", "e_s_questionnaire_id", "user_id", "condition"),everything())
+  dplyr::select(c("id", "e_s_questionnaire_id", "user_id", "condition", "questionnaireStartedTimestamp"),everything())
 
 compare_feature_df_all  <- compare_feature_df_all  %>% 
   dplyr::select(-c("name", "frameTime")) %>% 
-  dplyr::select(c("id", "e_s_questionnaire_id", "user_id", "condition"),everything())
+  dplyr::select(c("id", "e_s_questionnaire_id", "user_id", "condition", "questionnaireStartedTimestamp"),everything())
 
 # merge voice features 
-voice_features <- merge(egemaps_feature_df_all, compare_feature_df_all, by = c("id", "e_s_questionnaire_id", "user_id", "condition"))
+voice_features <- merge(egemaps_feature_df_all, compare_feature_df_all, by = c("id", "e_s_questionnaire_id", "user_id", "condition", "questionnaireStartedTimestamp"))
 
 # save
 saveRDS(voice_features, "data/study1/voice_features_study1.rds")

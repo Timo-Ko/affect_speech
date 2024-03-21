@@ -181,5 +181,4 @@ table(affect_voice$diff_arousal)
 
 affect_voice %>% group_by(user_id) %>% mutate (m_age = mean(Age, na.rm = T))
 
-
 # finish
