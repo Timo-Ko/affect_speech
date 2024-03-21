@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "text")
+packages <- c( "dplyr", "text", "gtools")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -56,6 +56,9 @@ folder_path <- "data/study2/word_embeddings/batches"
 
 # List all .rds files in the folder
 rds_files <- list.files(folder_path, pattern = "\\.rds$", full.names = TRUE)
+
+# order files
+rds_files_sorted <- mixedsort(rds_files)
 
 # Read each .rds file and store the data frames in a list
 list_of_dfs <- lapply(rds_files, readRDS)
