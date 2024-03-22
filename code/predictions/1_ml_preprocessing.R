@@ -47,13 +47,13 @@ affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "audspec_leng
 affect_voice_wordembeddings_study2_ml <- affect_voice_wordembeddings_study2
 
 affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "equivalentSoundLevel_dBp")] <-
-  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "equivalentSoundLevel_dBp")], no_feature_columns_study1) # egemaps features
+  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "equivalentSoundLevel_dBp")], no_feature_columns_study2) # egemaps features
 
 affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "mfcc_sma_de.14._stddevFallingSlope")] <-
-  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "mfcc_sma_de.14._stddevFallingSlope")], no_feature_columns_study1) # compare features
+  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "mfcc_sma_de.14._stddevFallingSlope")], no_feature_columns_study2) # compare features
 
 affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1024_texts")] <-
-  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1024_texts")], no_feature_columns_study1) # wordembedding features
+  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1024_texts")], no_feature_columns_study2) # wordembedding features
 
 # save data
 

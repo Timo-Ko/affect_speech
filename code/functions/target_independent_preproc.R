@@ -23,17 +23,17 @@ target_independent_preproc <- function(data, no_feature_columns){
   exclude_zero.var = colnames(data[, which(!colnames(data) %in% no_feature_columns)])[exclude_zero.var]
   data = data %>% dplyr::select(-all_of(exclude_zero.var))
   
-  ## exclude highly correlated features
-  # compute correlations between features
-  cors_feat = cor(data[, which(!colnames(data) %in% no_feature_columns)], use="pairwise.complete.obs")
-  cors_feat[is.na(cors_feat)] = 0
+  # ## exclude highly correlated features
+  # # compute correlations between features
+  # cors_feat = cor(data[, which(!colnames(data) %in% no_feature_columns)], use="pairwise.complete.obs")
+  # cors_feat[is.na(cors_feat)] = 0
+  # 
+  # # find features that are highly correlated (> 0.95) and drop them 
+  # exclude_high.cor = findCorrelation(cors_feat, cutoff = 0.95, names = TRUE)
+  # length(exclude_high.cor)
+  # data = data %>% dplyr::select(-all_of(exclude_high.cor))
   
-  # find features that are highly correlated (> 0.95) and drop them 
-  exclude_high.cor = findCorrelation(cors_feat, cutoff = 0.95, names = TRUE)
-  length(exclude_high.cor)
-  data = data %>% dplyr::select(-all_of(exclude_high.cor))
-  
-  data$user_id = as.character(data$user_id)
+  #data$user_id = as.character(data$user_id)
   
   return(data)
 }
