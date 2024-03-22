@@ -58,7 +58,7 @@ folder_path <- "data/study2/word_embeddings/batches"
 rds_files <- list.files(folder_path, pattern = "\\.rds$", full.names = TRUE)
 
 # order files
-rds_files_sorted <- mixedsort(rds_files)
+rds_files <- mixedsort(rds_files)
 
 # Read each .rds file and store the data frames in a list
 list_of_dfs <- lapply(rds_files, readRDS)
