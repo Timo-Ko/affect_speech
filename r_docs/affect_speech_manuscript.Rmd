@@ -63,7 +63,7 @@ authornote: |
   All materials are available in the project’s repository on the Open Science Framework (OSF): https://osf.io/a5db8/
 
 abstract: |
-  Advances in the area of artificial intelligence (AI) and the ubiquity of speech data, for example coming from voice assistants, have created numerous commercial products that claim to be able to automatically recognize emotions from human speech. However, the employed algorithms have often been trained solely on enacted or labelled speech samples from artificial lab settings representing affect *expression* and are used to infer everyday subjective affect *experience*. In the present work, we investigate if machine learning algorithms can truly recognize subjective affect experience from speech samples collected in the wild. In two studies, we extract acoustic voice parameters and state-of-the-art word embeddings from 23632 speech samples with corresponding experience-sampled self-reports on momentary affect experience from 1066 participants collected using off-the-shelf smartphones. While voice acoustics provide limited predictive information of affective arousal, speech content is predictive of arousal as well as valence (sadness and contentedness). Further, experimental and explorative findings suggest that emotional speech content does not affect predictions from voice acoustics (i.e., what someone talks about does not affect how well emotions can be predicted from voice cues alone). We discuss implications for the algorithmic monitoring of affect experience from speech in everyday life.
+  Advances in the area of artificial intelligence (AI) and the ubiquity of speech data, for example coming from voice assistants, have created numerous commercial products that claim to be able to automatically recognize emotions from human speech. However, the employed algorithms have often been trained solely on enacted or labelled speech samples from artificial lab settings representing affect *expression* and are used to infer everyday subjective affect *experience*. In the present work, we investigate if machine learning algorithms can truly recognize subjective affect experience from speech samples collected in the wild. In two studies, we extract acoustic voice parameters and state-of-the-art word embeddings from 23632 speech samples with corresponding experience-sampled self-reports on momentary affect experience from 1066 participants collected using off-the-shelf smartphones. While voice acoustics provide limited predictive information of affective arousal, speech content is predictive. Further, experimental and explorative findings suggest that emotional speech content does not affect predictions from voice acoustics (i.e., what someone talks about does not affect how well emotions can be predicted from voice cues alone). We discuss implications for the algorithmic monitoring of affect experience from speech in everyday life.
   
 keywords          : "Affect, Speech, Voice, Machine Learning, Mobile Sensing"
 wordcount         : "5464"
@@ -140,43 +140,32 @@ Data collection for study 1 was part of a large six-month panel study (from May 
 The last experience sampling questionnaire of each day included an additional instruction, where participants were asked to read out a series of predefined emotional sentences while making an audio recording of their voice. The sentences presented to the participants are based on a set of validated German neutral and affective sentences [@defrenEmotionalSpeechPerception2018] and differ in their emotional content: positive (e.g., "My team won yesterday."), negative (e.g., "Nobody is interested in my life."), and neutral (e.g., "The plate is on the round table."). These three emotional categories are presented consecutively in each audio logging task. The order of the categories was randomized per experience sampling questionnaire. For each emotional content category, three sentences were randomly drawn from respective sets of sentences in the database. The use and experimental manipulation of these emotional semantic categories allowed us to control for the content spoken by our participants and at the same time enabled us to conduct a privacy-friendly study. The audio recording was started by the participants via a button on the screen. Participants could stop the recording manually after a minimum of four seconds. Alternatively, the recording was stopped automatically after twelve seconds. We chose these lower- and upper-time thresholds because this is the minimum and maximum time required to read out the three sentences per condition.
 Once the audio record had been completed, we used the widely adopted *OpenSMILE* open-source algorithm [@eybenOpensmileMunichVersatile2010] to automatically extract acoustic features directly on the participant’s device. Here, we used the extended Geneva Minimalistic Acoustic Parameters Set (eGeMAPS) that is comprised of 88 acoustic features [@eybenGenevaMinimalisticAcoustic2016]. Theses voice feature have been used in a range of prior studies on affect recognition from speech. After feature extraction, the voice records were automatically deleted and only extracted voice features were stored on our servers.
 
-```{r ger sample data, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
+```{r study 1 sample data, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
 
 library("dplyr")
 
 ## load data
 
-# all voice samples
-# egemaps_features_all  <- readRDS("../study1_ger/data/egemaps_features_all.RData") 
+# merged voice and affect data before quality checks
+affect_voice_study1  <- readRDS("../data/study1/affect_voice_study1.rds")
 
-# all voice samples after voice quality check
-egemaps_features  <- readRDS("../data/study1/egemaps_features.RData") 
+# final merged data set of voice data with esm data after quality checks
+affect_voice_study1_cleaned  <- readRDS("../data/study1/affect_voice_study1_cleaned.rds")
 
-# final merged data set of voice data with esm data
-affect_egemaps  <- readRDS("../data/study1/affect_egemaps.RData") #load data
+# count how many es instances with valence and arousal ratings are available per participant
+count_es_user <- affect_voice %>% 
+  dplyr::group_by(user_id) %>% 
+  dplyr::count(sort =T)
 
-# show distribution of sentence conditions
-# table(affect_egemaps$condition)
-
-# count number of audio samples per experience sampling instance
-audio_per_es <- affect_egemaps %>%
-  group_by(e_s_questionnaire_id) %>%
-  count() 
-
-# table(audio_per_es$n) # there are three audio records for most es instances
-
-# show valence and arousal statistics per condition - no differences!
-affect_egemaps %>%
-  group_by(condition) %>%
-  dplyr::summarize(mean_valence = mean(valence, na.rm=TRUE), mean_arousal = mean(arousal, na.rm=TRUE))
+# find participants with less than 10 es instances
+length(which(count_es_user$n < 10))
 
 ```
 
 <!-- describe the sample, raw sample and final sample  -->
-With this procedure, we collected 11,199 audio logs from 586 participants. We excluded 214 voice logs because the respective acoustic features (mean voicing score, voiced segments per second, mean voiced segment length) indicated that no human voice was recorded. Moreover, we excluded a total of 997 samples without corresponding self-reports on valence and arousal, from participants with less than ten experience sampling instances, and those participants who had no variance in all their valence and arousal scores across all their experience samples.
-This left us with a final data set of `r nrow(affect_egemaps)` voice samples with corresponding acoustic features from `r length(unique(affect_egemaps$e_s_questionnaire_id))` experience sampling instances for valence and arousal from `r length(unique(affect_egemaps$user_id))` participants (`r round((table(affect_egemaps$Demo_GE)[2] / sum(table(affect_egemaps$Demo_GE)))*100,1)`% female, *M*(Age) = `r round(mean(affect_egemaps$Demo_A1, na.rm = T),2)` years). Overall self-reported valence was positive (*M* = `r round(mean(affect_egemaps$valence),2)`, *SD* = `r round(sd(affect_egemaps$valence),2)`) and overall arousal was slightly geared towards activity (*M* = `r round(mean(affect_egemaps$arousal),2)`, *SD* = `r round(sd(affect_egemaps$arousal),2)`). The distribution of valence and arousal is provided in the online supplements. 
+With this procedure, we collected `r nrow(affect_voice_study1)` audio logs with respective affect self-reports from `r length(unique(affect_voice_study1$user_id))` participants. We excluded `r length(which(count_es_user$n < 10))` participants with less than ten experience sampling instances and another eight participants who had no variance in all their valence and arousal scores across all their experience samples. Finally, we excluded 214 voice logs because the respective voice features (mean voicing score, voiced segments per second, mean voiced segment length) indicated that no human voice was recorded.
 
-In the final sample, voice samples were not equally distributed across emotional sentence conditions (*chi*^2^(2) = `r round(chisq.test(table(affect_egemaps$condition))$statistic,2)`, *p* < .001): `r table(affect_egemaps$condition)[[3]]` came from the positive condition, `r table(affect_egemaps$condition)[[2]]` from the neutral condition, and `r table(affect_egemaps$condition)[[1]]` from the negative condition.
+This left us with a final data set of `r nrow(affect_voice_study1_cleaned)` voice samples with corresponding acoustic features from `r length(unique(affect_voice_study1_cleaned$e_s_questionnaire_id))` experience sampling instances for valence and arousal from `r length(unique(affect_voice_study1_cleaned$user_id))` participants (`r round((table(affect_voice_study1_cleaned$Demo_GE)[2] / sum(table(affect_voice_study1_cleaned$Demo_GE)))*100,1)`% female, *M*(Age) = `r round(mean(affect_voice_study1_cleaned$Demo_A1, na.rm = T),2)` years). Overall self-reported valence was positive (*M* = `r round(mean(affect_voice_study1_cleaned$valence),2)`, *SD* = `r round(sd(affect_voice_study1_cleaned$valence),2)`) and overall arousal was slightly geared towards activity (*M* = `r round(mean(affect_voice_study1_cleaned$arousal),2)`, *SD* = `r round(sd(affect_voice_study1_cleaned$arousal),2)`). The distribution of valence and arousal ratings is provided in the online supplements. 
 
 ### Study 2: Data collection
 
@@ -184,28 +173,25 @@ In the final sample, voice samples were not equally distributed across emotional
 Data collection for study 2 was part of the UT1000 Project at the University of Texas at Austin in the United States in fall 2018 [@wuMultimodalDataCollection2021]. During a three-week self-tracking assignment using their smartphones, students from a Synchronous Massive Online Course (SMOC) in introductory psychology received four short experience sampling questionnaires per day where they could also make records of their speech at the end. Here, self-reported arousal (assessed on a five-point Likert scale), contentedness, and sadness were assessed in separate items on four-point Likert scales among other psychological properties as part of an experience sampling procedure. Thereby, in Study 2, we captured emotional valence on two items (contentedness and sadness) instead of one as done in Study 1. According to the affect grid, contentedness and sadness have a comparable low level of arousal and an opposing emotional valence.  
 For the audio records, participants received the following instruction: "Please record a short audio clip in which you describe the situation you are in, and your current thoughts and feelings. Collect about 10 seconds of environmental sound after the description.” The responses to this prompt are analyzed in the present study. Any parts of the record that did not contain speech were cut out before further analysis since the focus of this work is affect in human speech. The collected speech samples had also been used in another research project that describes the data collection procedure in more detail [@marreroEvaluatingVoiceSamples2022].
 
-```{r us sample data, include = FALSE}
+```{r study2 sample data, include = FALSE}
 
 library("dplyr")
 
 ## load data
 
-# # all voice samples
-# egemaps_features_all  <- readRDS("../study2_us/data/egemaps_features_all.RData")
-# 
-# # all voice samples after voice quality check
-# egemaps_features  <- readRDS("../study2_us/data/egemaps_features.RData")
-# 
-# final merged data set of voice data with esm data
-affect_egemaps_wordembeddings  <- readRDS("../data/study2/affect_acoustics_wordembeddings.RData") #load data
+# ema and voice data before data cleaning 
+affect_voice_study2  <- readRDS("../data/study2/affect_voice_study2.rds")
+
+# final merged data set of voice data with esm data after cleaning 
+affect_egemaps_wordembeddings_study2  <- readRDS("../data/study2/affect_voice_wordembeddings.rds")
 
 ```
 
 <!--  initial sample, preprocessing -->
-With this procedure, we collected 23,482 audio logs from 980 participants. We followed the same procedure to select speech records as in Study 1 and, to ensure comparability of the two studies with regard to the length of speech samples, we retained all speech transcripts that contained at least 15 words and were more than four seconds long which is equivalent to the length of the sentences that had been read out in Study 1: We removed records where the respective acoustic features indicated that no human voice was recorded. Moreover, we excluded audio samples without corresponding affect self-reports, participants with less than ten experience sampling instances, and those participants who had no variance in all their self-reports across all their experience samples.
+With this procedure, we collected `r nrow(affect_voice_study2)` audio logs with corresponding affect self-reports from `r length(unique(affect_voice_study2$user_id))` participants. We followed the same procedure to filter the data as in Study 1: First, we excluded 281 participants with less than ten experience sampling instances and another participant who had no variance in all their self-reports across all their experience samples. Next, we removed 6,875 voice records where the respective acoustic features indicated that no human voice was recorded and, to ensure comparability of the two studies with regard to the length of speech samples, we retained all speech transcripts that contained at least 15 words and were more than four seconds long which is equivalent to the length of the sentences that had been read out in Study 1 
 
 <!-- final sample description - study 2 -->
-This procedure left us with a final data set of `r nrow(affect_egemaps_wordembeddings)` speech samples with corresponding experience-sampled self-reports on momentary affect experience from `r length(unique(affect_egemaps_wordembeddings$user_id))` participants (`r round((table(affect_egemaps_wordembeddings$Gender)[1] / sum(table(affect_egemaps_wordembeddings$Gender)))*100,1)`% female, *M*(Age) = `r round(mean(affect_egemaps_wordembeddings$Age, na.rm = T),2)` years). Overall participants reported balanced experienced contentedness (*M* = `r round(mean(affect_egemaps_wordembeddings$content),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings$content),2)`) and low sadness (*M* = `r round(mean(affect_egemaps_wordembeddings$sad),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings$sad),2)`). Overall arousal was balanced out (*M* = `r round(mean(affect_egemaps_wordembeddings$arousal),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings$arousal),2)`). The distribution of arousal, contentedness, and sadness is provided in the online supplements. 
+This procedure left us with a final data set of `r nrow(affect_egemaps_wordembeddings_study2)` speech samples with corresponding experience-sampled self-reports on momentary affect experience from `r length(unique(affect_egemaps_wordembeddings_study2$user_id))` participants (`r round((table(affect_egemaps_wordembeddings_study2$Gender)[1] / sum(table(affect_egemaps_wordembeddings_study2$Gender)))*100,1)`% female, *M*(Age) = `r round(mean(affect_egemaps_wordembeddings_study2$Age, na.rm = T),2)` years). Overall participants reported balanced experienced contentedness (*M* = `r round(mean(affect_egemaps_wordembeddings_study2$content),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings_study2$content),2)`) and low sadness (*M* = `r round(mean(affect_egemaps_wordembeddings_study2$sad),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings_study2$sad),2)`). Overall arousal was balanced out (*M* = `r round(mean(affect_egemaps_wordembeddings_study2$arousal),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings_study2$arousal),2)`). The distribution of arousal, contentedness, and sadness is provided in the online supplements. 
 
 <!-- acoustic feature extraction -->
 In the same manner as in Study 1, we extracted the extended Geneva Minimalistic Acoustic Parameters Set (eGeMAPS) from the collected audio files using the OpenSMILE algorithm [@eybenOpensmileMunichVersatile2010; @eybenGenevaMinimalisticAcoustic2016]. In Study 2, those features were extracted from the raw recorded audio files after data collection and not directly on participants' smartphones as in Study 1.
@@ -226,14 +212,14 @@ All data processing and statistical analyses in this work were performed with th
 
 ### Results
 
-#### Voice contains only little predictive informaion of affect experience, but speech content does
+#### Voice contains only little predictive informaion of subjective affect experience, but speech content does
 
-```{r ger predictions, echo = FALSE, warning = FALSE}
+```{r study1 predictions, echo = FALSE, warning = FALSE}
 
 library(mlr3)
 
 #load benchmark results
-bmr_egemaps_gender_study1 <- readRDS("../results/study1/bmr_egemaps_gender_study1.RData") 
+bmr_egemaps_gender_study1 <- readRDS("../results/study1/bmr_egemaps_gender_study1.rds") 
 
 bmr_egemaps_study1 <- readRDS("../results/study1/bmr_egemaps_study1.rds") 
 
@@ -246,12 +232,12 @@ mes_egemaps_study1 <- bmr_egemaps_study1$aggregate(mes)
 
 ```
 
-```{r us predictions, echo = FALSE, warning = FALSE}
+```{r study2 predictions, echo = FALSE, warning = FALSE}
 
 library(mlr3)
 
 #load benchmark results 
-bmr_gender_study2 <- readRDS("../results/study2/bmr_gender_study2.RData")
+bmr_gender_study2 <- readRDS("../results/study2/bmr_egemaps_gender_study2.rds")
 
 bmr_egemaps_study2 <- readRDS("../results/study2/bmr_egemaps_study2.rds")
 
@@ -270,8 +256,7 @@ mes_wordembeddings_study2 <- bmr_wordembeddings_study2$aggregate(mes)
 Figure \@ref(fig:predictionoverview) provides an overview of the performance of all learners across prediction tasks while in this section we report on the best performing algorithm respectively (either Random Forest or LASSO). Overall, none of the employed machine learning algorithms predicted affect experience significantly better than chance from voice cues. On average, predictions of arousal (*R*^2^ = `r round(mes_egemaps[which(mes_egemaps$learner_id == "regr.ranger" & mes_egemaps$task_id  == "egemaps_arousal")]$regr.rsq,2)`, *r* = `r round(mes_egemaps[which(mes_egemaps$learner_id == "regr.ranger" & mes_egemaps$task_id  == "egemaps_arousal")]$regr.srho, 2)`) from Random Forest models were on average slightly better than the baseline models' predictions. 
 
 <!-- study 2: prediction from voice cues -->
-Also, for free speech, the employed machine learning models trained on voice acoustics did not predict the subjective experience of momentary affect experience significantly better than chance. 
-Prediction models trained on voice acoustics alone were not significantly better than chance. However, on average, predictions of contentedness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_content")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_content")]$regr.srho, 2)`) and arousal (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_arousal")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_arousal")]$regr.srho, 2)`). Our models yielded the best prediction performance for contentedness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_content")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_content")]$regr.srho, 2)`), arousal (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_arousal")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_arousal")]$regr.srho, 2)`), and sadness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_sad")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_sad")]$regr.srho, 2)`).
+Also, for free speech, the employed machine learning models trained on voice acoustics did not predict the subjective experience of momentary affect experience significantly better than chance. However, on average, predictions of contentedness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_content")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_content")]$regr.srho, 2)`) and arousal (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_arousal")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.ranger" & mes$task_id  == "egemaps_arousal")]$regr.srho, 2)`). Our models yielded the best prediction performance for contentedness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_content")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_content")]$regr.srho, 2)`), arousal (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_arousal")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_arousal")]$regr.srho, 2)`), and sadness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_sad")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "egemaps_wordembeddings_sad")]$regr.srho, 2)`).
 
 <!-- study 2: word embeddings and combined voice + embeddings -->
 On the contrary, prediction models trained on word embeddings were significantly predictive of arousal (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "wordembeddings_arousal")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "wordembeddings_arousal")]$regr.srho, 2)`), contentedness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "wordembeddings_content")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "wordembeddings_content")]$regr.srho, 2)`), and sadness (*R*^2^ = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "wordembeddings_sad")]$regr.rsq, 2)`, *r* = `r round(mes[which(mes$learner_id == "regr.cv_glmnet" & mes$task_id  == "wordembeddings_sad")]$regr.srho, 2)`). Finally, models trained only on voice acoustics or word embedding respectively revealed that predictions were mostly driven by the information coming from speech content as represented in the word embeddings. 
@@ -286,12 +271,12 @@ knitr::include_graphics(path = "../figures/bmr_plot.png")
 
 #### Loudness and spectral flux are the most informative affective voice cues
 
-<!-- add one combined figure of predictive arousal features for both studies here -->
+<!-- add one combined table of predictive arousal features for both studies here -->
 <!-- add grouped feature importance plot here ?? does this tell us much? -->
 
-Overall, features related to spectral flux (i.e., how quickly the power spectrum of the voice signal is changing) and loudness were most important. This observation is in line with descriptive correlations of voice features and self-reported affect experience (see figures \@ref(fig:gercorrelations1) and \@ref(fig:gercorrelations2) in the online appendix, where spectral flux and loudness features also had the highest (Spearman) correlation coefficients. Together, these findings indicate that a louder voice that has a quickly changing spectrum is indicative of the experience of heightened arousal.
+Overall, features related to spectral flux (i.e., how quickly the power spectrum of the voice signal is changing) and loudness were most important. This observation is in line with descriptive correlations of voice features and self-reported affect experience (see figures in the online appendix, where spectral flux and loudness features also had the highest (Spearman) correlation coefficients. Together, these findings indicate that a louder voice that has a quickly changing spectrum is indicative of the experience of heightened arousal.
 
-Figure \@ref(fig:featureimportance) shows the five most important features in the Random Forest model (based on permutation feature importance) for the prediction of arousal from acoustic voice features. We refrained from reporting feature importance scores for word embeddings as they are not as clearly interpretable as voice features. Overall, features related to loudness of the voice were most important from arousal predictions. Even though features describing spectral flux (i.e., how quickly the power spectrum of the voice signal changes) showed high correlations with self-reported affect experience (see online appendix), other voice features related to the voice spectrum (mean of the mel-frequency cepstral coefficient and bandwidth of the first formant) made it into the top five most important features in the Random Forest model. Again, in line with results from study 1, these findings indicate that a louder voice that has a quickly changing broad spectrum is indicative of heightened experienced arousal.
+Table \@ref(fig:featureimportance) shows the five most important features in the Random Forest model (based on permutation feature importance) for the prediction of arousal from acoustic voice features. Overall, features related to loudness of the voice were most important from arousal predictions. Even though features describing spectral flux (i.e., how quickly the power spectrum of the voice signal changes) showed high correlations with self-reported affect experience (see online appendix), other voice features related to the voice spectrum (mean of the mel-frequency cepstral coefficient and bandwidth of the first formant) made it into the top five most important features in the Random Forest model. Again, in line with results from study 1, these findings indicate that a louder voice that has a quickly changing broad spectrum is indicative of heightened experienced arousal.
 
 <!-- give some details on predictive word embeddings in study 2 ?? very student specific! -->
 
@@ -317,13 +302,13 @@ kable(table_data, "latex", booktabs = TRUE, caption = "Your Table Title") %>%
 
 ```
 
-#### Speech content has no effect arousal predictions from voice acoustics
+#### Speech content has no effect arousal predictions from voice 
 
 ```{r sentenceanova, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
 
 library(car)
 
-predictions_condition <- readRDS(file="../results/study1/predictions_condition.rds")
+predictions_condition <- readRDS(file="../results/study1/predictions_condition.RData")
 
 # run anova comparing means for valence 
 aov_valence <- car::Anova(aov(error_valence ~ condition, data = predictions_condition))
@@ -333,20 +318,23 @@ aov_arousal <- car::Anova(aov(error_arousal ~ condition, data = predictions_cond
 
 ```
 
-
-```{r sentimentcorrs, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
-
-predictions_condition <- readRDS(file="../results/study2/predictions_condition.rds")
-
-```
-
 <!-- study1: is absolute error different across conditions -->
 In study 1, we analyzed if the experimentally altered emotional content (positive/ neutral/ negative) of the predefined sentences that had been read out by participants had an effect on affect predictions from voice acoustics. There were no significant differences in prediction errors across the three sentence conditions for valence (*F*(2,11873) = `r round(aov_valence[3][[1]][1],2)`,
 *p* > .05) and arousal (*F*(2,11873) = `r round(aov_arousal[3][[1]][1],2)`,
 *p* > .05) predictions suggesting that sentences' emotional valence did not influence affect predictions from voice acoustics.
 
+```{r sentimentcorrs, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
+
+predictions_sentiment <- readRDS(file="../results/study2/predictions_sentiment.rds")
+
+cor_error_content <- cor.test(predictions_sentiment$sentiment, predictions_sentiment$error_content)
+cor_error_arousal <- cor.test(predictions_sentiment$sentiment, predictions_sentiment$error_arousal)
+cor_error_sad <- cor.test(predictions_sentiment$sentiment, predictions_sentiment$error_sad)
+
+```
+
 <!-- study 2: (no) Effects of sentiment on voice predictions, maybe (!) a little bit for contentedness - but keep in mind that predictions were not significant overall! -->
-In study 2, in order to exploratively investigate the effect of the emotional valence of the spoken content on affect predictions from voice cues, we used the sentiment score (*M* =`r round(mean(affect_egemaps_wordembeddings$Sentiment.score, na.rm =T),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings$Sentiment.score, na.rm =T),2)`) within the interval of [-1; 1] that had been assigned to each speech transcript by the Google text-to-speech API. Here, we analyzed the correlation of content sentiment with the the absolute prediction errors in the prediction of self-reported momentary arousal, contentedness, and sadness from voice cues using the LASSO algorithm. Result indicate that content sentiment did not have an effect on affect predictions from voice cues: Correlations of content sentiment with absolute predictions errors was not significant for neither contentedness (*r* = XX, *p* > .05), sadness (*r* = XX, *p* > .05), nor arousal (*r* = XX, *p* > .05). When interpreting those results, one has to keep in mind that overall the predictive performance of the models trained on voice cues was generally limited. 
+In study 2, in order to exploratively investigate the effect of the emotional valence of the spoken content on affect predictions from voice cues, we used the sentiment score (*M* =`r round(mean(affect_egemaps_wordembeddings$Sentiment.score, na.rm =T),2)`, *SD* = `r round(sd(affect_egemaps_wordembeddings$Sentiment.score, na.rm =T),2)`) within the interval of [-1; 1] that had been assigned to each speech transcript by the Google text-to-speech API. Here, we analyzed the correlation of content sentiment with the the absolute prediction errors in the prediction of self-reported momentary arousal, contentedness, and sadness from voice cues using the LASSO algorithm. Result indicate that content sentiment did not have an effect on affect predictions from voice cues: Correlations of content sentiment with absolute predictions errors was not significant for neither contentedness (*r* = `r round(cor_error_content$estimate[[1]], 2)`, *p* > .05), sadness (*r* = `r round(cor_error_sad$estimate[[1]], 2)`, *p* > .05), nor arousal (*r* = `r round(cor_error_arousal$estimate[[1]], 2)`, *p* > .05). When interpreting those results, one has to keep in mind that overall the predictive performance of the models trained on voice cues was generally limited. 
 
 \newpage
 
@@ -354,8 +342,6 @@ In study 2, in order to exploratively investigate the effect of the emotional va
 
 <!-- mini summary of findings, use past tense here -->
 In the present work, we extracted acoustic voice parameters and state-of-the-art word embeddings from speech samples collected using smartphones to predict subjective momentary affect experience. In contrast to prior work on the algorithmic recognition of affect expression, our findings suggest that voice cues provide only limited predictive information of subjective affect experience. Here, we identified loudness and features related to fluctuations of the voice spectrum to contain most affective information. Also, experimental (Study 1) and explorative (Study 2) findings suggest that emotional speech content did not affect predictions from voice acoustics (i.e., what someone talks about does not influence how well affect can be predicted from voice cues). Speech content, on the contrary, had been shown to be much more revealing of subjective affect experience.  
-
-### Recognizing subjective momentary affect experience from speech is challenging 
 
 <!-- comparing our results to prior findings: comparable performance to affect experience but lower performance than affect expression predictions; some works on how smartphones can help -->
 Our results indicate that speech samples, and particularly their content, allow for the automatic prediction of subjective momentary affect experience. However, our machine learning models achieve a lower prediction performance as reported in prior work on automatic predictions of affect *expression* [@schullerSpeechEmotionRecognition2018]. Still, our reported performance is similar to studies predicting subjective affect *experience* from speech samples collected in the wild [@weidmanNotHearingHappiness2020; @carlierSearchStateTrait2022; @sunLanguageWellbeingTracking2020]. This observation is in line with prior research suggesting that real-life emotions are more difficult to algorithmically recognize than enacted or elicited emotions [@vogtAutomaticRecognitionEmotions2008]. Also, there are only few instances of extreme affect experiences in our data sets compared to the data used in prior studies on acted or labelled emotions. As a result, we rather predicted *mood* in this work, which is, by definition, less intense than emotions [@schererVocalCommunicationEmotion2003] and, consequently, more challenging to recognize. 
@@ -372,11 +358,6 @@ Generally, our findings challenge the transferability of the optimistic predicti
 <!-- the role of smartphones in future research -->
 In future research, smartphone could play a prominent role in collecting and analyzing speech data and corresponding in-situ self-reports on subjective affect experience for affect inferences. Hereby, starting from our work, smartphones could be used as a mobile experimental lab to study different aspects of affect recognition from speech, for example by experimentally varying the content as done in Study 1 [@millerSmartphonePsychologyManifesto2012]. 
 
-### The context of speech production matters
-
-<!-- scripted sentences vs prompted speech had no effect on arousal predictions, valence was better in study 2, but might be due to specific target -->
-Our results indicate that the context of speech production (i.e., reading out predefined emotional sentences versus prompted free speech) had an impact on algorithmic affect predictions. While the predefined sentences in Study 1 allowed us to control for the emotionality of the content of participants' voice records, they were unable to express themselves freely, which could have impaired predictions from voice acoustics compared to Study 2 where participants could talk freely. As a result, researchers and practitioners should consider the context in which speech had been produced in and keep in mind that findings and trained models might be specific to the given production context and do not necessarily generalize well to other production contexts. 
-
 ### The role of speech content 
 
 <!--  content (word embeddings) way superior to voice cues (study 2) + what are implications? -->
@@ -384,6 +365,9 @@ In Study 2, state-of-the-art word embeddings showed a superior affect prediction
 
 <!-- Sentence condition (study 1) and sentiment score (study 2) -->
 By experimentally varying the emotional valence of the spoken content in Study 1 and exploratively investigating the effect of word sentiment on voice predictions in Study 2, our findings suggest that the content about what participants talked about did not have a substantial impact on affect predictions from voice cues. This insight could imply that it does not matter what people talk about when algorithmically inferring affect experience from voice cues. However, one has to keep than in mind that affect predictions from voice cues were overall not very strong. More research is needed to disentangle speech content and form in automatic affect recognition.
+
+<!-- scripted sentences vs prompted speech had no effect on arousal predictions from voice, valence was better in study 2, but might be due to specific target -->
+Our results indicate that the context of speech production (i.e., reading out predefined emotional sentences versus prompted free speech) had an impact on algorithmic affect predictions. While the predefined sentences in Study 1 allowed us to control for the emotionality of the content of participants' voice records, they were unable to express themselves freely, which could have impaired predictions from voice acoustics compared to Study 2 where participants could talk freely. As a result, researchers and practitioners should consider the context in which speech had been produced in and keep in mind that findings and trained models might be specific to the given production context and do not necessarily generalize well to other production contexts. 
 
 ## Limitations and future directions
 

@@ -1,13 +1,14 @@
 # Install and load required packages 
 
-packages <- c( "dplyr", "tidyr","data.table", "ggplot2", "gridExtra")
+packages <- c( "dplyr", "tidyr", "mlr3", "data.table", "ggplot2", "gridExtra")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
 # read in benchmark results
-bmr_egemaps <- readRDS("study1_ger/results/bmr_egemaps.RData")
+bmr_egemaps <- readRDS("results/study1/bmr_egemaps_study1.rds")
 
-affect_egemaps <- readRDS("study1_ger/data/affect_egemaps.RData")
+# load data
+affect_egemaps <- readRDS("data/study1/affect_voice_study1.rds")
 
 ####  SEMANTIC EFFECTS: VALENCE ####
 
@@ -53,9 +54,8 @@ cond_error <- predictions_condition[,c("condition", "error_valence", "error_arou
   mutate(mean_error_valence = mean(error_valence)) %>% 
   mutate(mean_error_arousal = mean(error_arousal)) 
 
-
 # save data 
-saveRDS(predictions_condition, file = "study1_ger/results/predictions_condition.RData")
+saveRDS(predictions_condition, file = "results/study1/predictions_condition.rds")
 
 # also i need to create a "target" column, reshape to long format
 predictions_condition_long <- predictions_condition  %>% 
@@ -84,17 +84,3 @@ predictions_condition_plot
 dev.off()
 
 ## FINISH
-
-
-## OLD CODE
-# create plot
-# condition_error_plot <- ggplot(data = predictions_condition_long[,c("target", "condition", "error")], 
-#                           aes_string(x= "condition" , y= "error", color = "target")) +
-#   #geom_point() +
-#   #stat_smooth(method='loess', se = T, span = 1)+
-#   scale_x_discrete("Sentence sentiment") +
-#   scale_y_continuous("Absolute prediction error") + 
-#   theme_minimal(base_size = 20)
-# 
-# # error is much higher for low valence and no apparent differences across sentence conditions
-

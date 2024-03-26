@@ -6,22 +6,24 @@ lapply(packages, library, character.only = TRUE)
 
 # read in benchmark results from acoustics predictions
 
-bmr_egemaps_wordembeddings <- readRDS("results/bmr_egemaps_wordembeddings.RData")
+bmr_egemaps <- readRDS("results/study2/bmr_egemaps_study2.rds")
 
 # load df
-affect_acoustics <- readRDS("data/affect_acoustics.RData")
+affect_voice_wordembeddings <- readRDS("data/study2/affect_voice_wordembeddings.rds")
 
 #### SENTIMENT DESCRIPTIVES ####
 
-hist(affect_acoustics$Sentiment.score)
-summary(affect_acoustics$Sentiment.score)
+hist(affect_voice_wordembeddings$Sentiment.score)
+summary(affect_voice_wordembeddings$Sentiment.score)
 
-####  CONTENT SENTIMENT EFFECTS ON PREDICTION PERFORMANCE FROM ACOUSTICS ####
+####  CONTENT SENTIMENT EFFECTS ON PREDICTION PERFORMANCE FROM VOICE ####
 
 ## create plot showing the prediction error on y axis and seconds of voiced speech score on x-axis with 3 curves (one for sad and one for content)
 
 ## get predictions from lasso (best performing algo) for contentedness
-aggr = bmr_egemaps_wordembeddings$aggregate(msrs("regr.mae"))
+aggr = bmr_egemaps$aggregate(msrs("regr.mae"))
+
+
 rf_content = aggr$resample_result[[2]]
 predictions_content <- as.data.table(rf_content$prediction())
 
@@ -46,7 +48,7 @@ colnames(predictions_arousal)[colnames(predictions_arousal) == 'truth'] <- 'trut
 colnames(predictions_arousal)[colnames(predictions_arousal) == 'response'] <- 'response_arousal'
 
 # create one df
-predictions_sentiment <- cbind(predictions_content, predictions_sad, predictions_arousal, affect_acoustics$Sentiment.score)
+predictions_sentiment <- cbind(predictions_content, predictions_sad, predictions_arousal, affect_voice_wordembeddings$Sentiment.score)
 
 # rename column for sentiment
 colnames(predictions_sentiment)[colnames(predictions_sentiment) == 'V4'] <- 'sentiment'
@@ -58,6 +60,14 @@ predictions_sentiment$error_arousal <- abs(predictions_sentiment$truth_arousal -
 
 head(predictions_sentiment)
 
+# save data 
+
+saveRDS(predictions_sentiment, "results/study2/predictions_sentiment.rds")
+
+# compute correlations of sentiment score and prediction error for each target
+cor(predictions_sentiment$sentiment, predictions_sentiment$error_content, use = "complete.obs")
+cor(predictions_sentiment$sentiment, predictions_sentiment$error_arousal, use = "complete.obs")
+cor(predictions_sentiment$sentiment, predictions_sentiment$error_sad, use = "complete.obs")
 
 # convert to long format
 predictions_sentiment_long <-  gather(predictions_sentiment, target, error, error_content, error_sad, error_arousal)

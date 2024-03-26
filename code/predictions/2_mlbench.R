@@ -79,13 +79,13 @@ compare_arousal_study1 = TaskRegr$new(id = "compare_arousal",
 
 # supplementary prediction: gender
 
-affect_voice_gender <- affect_voice_study1[!is.na(affect_voice_study1$Demo_GE1),] # create new df with no missing data for gender
-affect_voice_gender$Demo_GE1 <- as.factor(affect_voice_gender$Demo_GE1) # convert gender to factor
+affect_voice_gender_study1 <- affect_voice_study1[!is.na(affect_voice_study1$Demo_GE1),] # create new df with no missing data for gender
+affect_voice_gender_study1$Demo_GE1 <- as.factor(affect_voice_gender_study1$Demo_GE1) # convert gender to factor
 
 egemaps_gender_study1 = TaskClassif$new(id = "egemaps_gender_study1", 
-                                        backend = affect_voice_gender[,c(which(colnames(affect_voice_gender)=="user_id"),
-                                                                           which(colnames(affect_voice_gender)=="Demo_GE1"),  
-                                                                           which(colnames(affect_voice_gender)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_gender)=="equivalentSoundLevel_dBp"))], 
+                                        backend = affect_voice_gender_study1[,c(which(colnames(affect_voice_gender_study1)=="user_id"),
+                                                                           which(colnames(affect_voice_gender_study1)=="Demo_GE1"),  
+                                                                           which(colnames(affect_voice_gender_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_gender_study1)=="equivalentSoundLevel_dBp"))], 
                                         target = "Demo_GE1")
 
 ## add blocking
@@ -122,13 +122,14 @@ compare_arousal_study1$col_roles$feature = setdiff(compare_arousal_study1$col_ro
 
 ## benchmark predictions
 
-# gender
-affect_voice_wordembeddings_study2$Gender <- as.factor(affect_voice_wordembeddings_study2$Gender) # convert gender to factor
+# supplementary analysis: gender
+affect_voice_wordembeddings_gender_study2 <- affect_voice_wordembeddings_study2[!is.na(affect_voice_wordembeddings_study2$Gender),] # create new df with no missing data for gender
+affect_voice_wordembeddings_gender_study2$Gender <- as.factor(affect_voice_wordembeddings_gender_study2$Gender) # convert gender to factor
 
 egemaps_gender_study2 = TaskClassif$new(id = "egemaps_gender", 
-                           backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)== "Gender"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
+                           backend = affect_voice_wordembeddings_gender_study2[,c(which(colnames(affect_voice_wordembeddings_gender_study2)=="user_id"), 
+                                                         which(colnames(affect_voice_wordembeddings_gender_study2)== "Gender"), 
+                                                         which(colnames(affect_voice_wordembeddings_gender_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_gender_study2)=="equivalentSoundLevel_dBp"))], 
                            target = "Gender")
 
 ## egemaps feature set
@@ -355,7 +356,6 @@ egemaps_wordembeddings_sad$col_roles$feature = setdiff(egemaps_wordembeddings_sa
 egemaps_wordembeddings_arousal$col_roles$group = "user_id"
 egemaps_wordembeddings_arousal$col_roles$feature = setdiff(egemaps_wordembeddings_arousal$col_roles$feature, "user_id")
 
-
 #### CREATE LEARNERS ####
 
 lrn_fl = lrn("regr.featureless")
@@ -436,17 +436,10 @@ saveRDS(bmr_egemaps_study1, "results/study1/bmr_egemaps_study1.rds") # save resu
 
 ## supplementary analysis: compare feature set
 
-# add pca in preprocessing 
-po_preproc = po("pca", param_vals = list(rank. = 88), scale. = T) # extract 88 dimension from pca
-
-# combine training with pre-processing
-lrn_rf_po_pca = po_preproc %>>% lrn_rf_po
-lrn_rr_po_pca = po_preproc %>>% lrn_rr_po 
-
 bmgrid_compare = benchmark_grid(
   task = c(compare_valence, 
            compare_arousal),
-  learner = list(lrn_fl, lrn_rf_po_pca,  lrn_rf_po_pca),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
 )
 
@@ -457,9 +450,14 @@ bmr_compare_study1 = benchmark(bmgrid_compare_study1, store_models = F, store_ba
 saveRDS(bmr_compare_study1, "results/study1/bmr_compare_study1.rds") # save results
 
 # supplementary prediction: gender
+
+# create classification learner 
+lrn_classif_rf_po = po_impute_oor  %>>% lrn("classif.ranger", num.trees =1000, predict_type = "prob")
+lrn_classif_rr_po = po_impute_hist  %>>% lrn("classif.cv_glmnet", predict_type = "prob")
+
 bmgrid_egemaps_gender_study1 = benchmark_grid(
   task = c(egemaps_gender_study1),
-  learner = list(lrn("classif.featureless", predict_type = "prob"), lrn("classif.ranger", num.trees =1000, predict_type = "prob"), lrn("classif.cv_glmnet", predict_type = "prob")),
+  learner = list(lrn("classif.featureless", predict_type = "prob"), lrn_classif_rf_po, lrn_classif_rr_po ),
   resampling = resampling
 )
 
@@ -468,7 +466,6 @@ future::plan("multisession", workers = 5) # enable parallelization
 bmr_egemaps_gender_study1 = benchmark(bmgrid_egemaps_gender_study1, store_models = F, store_backends = F) # execute the benchmark
 
 saveRDS(bmr_egemaps_gender_study1, "results/study1/bmr_egemaps_gender_study1.rds") # save results
-
 
 #### BENCHMARK: STUDY 2 ####
 
@@ -502,18 +499,11 @@ saveRDS(bmr_egemaps_study2, "results/study2/bmr_egemaps_study2.rds") # save resu
 
 ## supplementary analysis: compare feature set
 
-# add pca in preprocessing 
-po_preproc = po("pca", param_vals = list(rank. = 88), scale. = T) # extract 88 dimension from pca
-
-# combine training with pre-processing
-lrn_rf_at_po = po_preproc %>>% at_rf 
-lrn_rr_at_po = po_preproc %>>% at_rr 
-
 bmgrid_compare_study2 = benchmark_grid(
   task = c(compare_arousal_study2,
            compare_content_study2,
            compare_sad_study2),
-  learner = list(lrn_fl, lrn_rf_at_po,  lrn_rr_at_po),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
 )
 
@@ -546,11 +536,10 @@ bmr_wordembeddings_study2 = benchmark(bmgrid_wordembeddings, store_models = F, s
 
 saveRDS(bmr_wordembeddings_study2, "results/study2/bmr_wordembeddings_study2.rds") # save results
 
-
 ## supplementary prediction: gender
 bmgrid_egemaps_gender_study2 = benchmark_grid(
   task = egemaps_gender_study2,
-  learner = list(lrn("classif.featureless", predict_type = "prob"), lrn("classif.ranger", num.trees =1000, predict_type = "prob"), lrn("classif.cv_glmnet", predict_type = "prob")),
+  learner = list(lrn("classif.featureless", predict_type = "prob"), lrn_classif_rf_po,lrn_classif_rr_po ),
   resampling = resampling
 )
 
@@ -559,7 +548,6 @@ future::plan("multisession", workers = 5) # enable parallelization
 bmr_egemaps_gender_study2 = benchmark(bmgrid_egemaps_gender_study2, store_models = F, store_backends = F) # execute the benchmark
 
 saveRDS(bmr_egemaps_gender_study2, "results/study2/bmr_egemaps_gender_study2.rds") # save results
-
 
 #### DEEP DIVE BENCHMARK RESULTS AND SIGNIFICANCE TESTS ####
 
@@ -586,9 +574,13 @@ mes = c(msr("regr.srho"), msr("regr.rsq"))
 
 bmr_egemaps_study1$aggregate(mes)
 
+bmr_egemaps_gender_study1$aggregate(msr("classif.acc"))
+
 # study 2
 bmr_egemaps_study2$aggregate(mes)
 bmr_wordembeddings_study2$aggregate(mes)
+
+bmr_egemaps_gender_study2$aggregate(msr("classif.acc"))
 
 ## deep dive: retrieve benchmark results across tasks and learners for single cv folds (this is needed for barplots)
 

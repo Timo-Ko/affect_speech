@@ -1,4 +1,4 @@
-### FILTED DATA BASED ON AFFECT DATA ####
+### FILTED DATA BASED ON AFFECT DATA 8USER LEVEL) ####
 
 library(dplyr)
 
@@ -30,7 +30,7 @@ var_es_user <- affect_voice %>%
   dplyr::slice(1) #keep one row per user 
 
 # find participants with zero variance in their valence AND arousal responses across all their es (they were probably straightlining)
-length(which(var_es_user$var_valence == 0 & var_es_user$var_arousal == 0)) # 4 participants fall into the straightliner category
+length(which(var_es_user$var_valence == 0 & var_es_user$var_arousal == 0)) # 8 participants fall into the straightliner category
 
 # find participants with variance in their responses
 variancees_user <- var_es_user[ var_es_user$var_valence != 0  | var_es_user$var_arousal != 0, "user_id"]
@@ -59,7 +59,7 @@ affect_voice$diff_arousal <- as.numeric(affect_voice$arousal - affect_voice$md_a
 affect_voice <- affect_voice  %>% 
   dplyr::select(c("e_s_questionnaire_id", "questionnaireStartedTimestamp", "id", "user_id" , "Demo_A1", "Demo_GE1", "condition", "valence", "md_valence", "diff_valence", "arousal", "md_arousal", "diff_arousal"), everything())
 
-### CLEAN DATA BASED ON VOICE INDICATORS ####
+### CLEAN DATA BASED ON VOICE INDICATORS (INSTANCE LEVEL) ####
 
 ## find cases where participants did not record voice in their audio samples
 
