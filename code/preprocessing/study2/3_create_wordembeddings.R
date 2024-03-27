@@ -7,7 +7,7 @@ install.packages(setdiff(packages, rownames(installed.packages())))
 lapply(packages, library, character.only = TRUE)
 
 # read in data frame
-affect_voice <- readRDS("data/study2/affect_voice.rds")
+affect_voice <- readRDS("data/study2/affect_voice_study2_cleaned.rds")
 
 ## set up text environment - this needs to be done only once!
 

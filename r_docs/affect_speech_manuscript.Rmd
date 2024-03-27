@@ -153,7 +153,7 @@ affect_voice_study1  <- readRDS("../data/study1/affect_voice_study1.rds")
 affect_voice_study1_cleaned  <- readRDS("../data/study1/affect_voice_study1_cleaned.rds")
 
 # count how many es instances with valence and arousal ratings are available per participant
-count_es_user <- affect_voice %>% 
+count_es_user <- affect_voice_study1 %>% 
   dplyr::group_by(user_id) %>% 
   dplyr::count(sort =T)
 
@@ -202,13 +202,13 @@ We transcribed all raw audio records using the Google Speech-to-text API. Then, 
 #### Predictive modelling
 
 <!-- general ml -->
-In both studies, we trained two supervised machine learning models on the extracted features for the prediction of self-reported valence and arousal. Here, we compared the predictive performance of linear regularized regression models (LASSO)  [@zouRegularizationVariableSelection2005] with those of a non-linear tree-based Random Forest model [@breimanRandomForests2001; @wrightRangerFastImplementation2017], and a baseline model. The baseline model would predict the respective mean values for valence and arousal of the respective training set for all cases in a test set. Additionally, we included the prediction of participants' gender as a benchmark. Models were evaluated using a ten-fold cross-validation scheme [@bischlResamplingMethodsMetaModel2012]. We blocked participants in the resampling procedure ensuring that for each train/test set pair the given participant is either in the training set or in the test set.  
+In both studies, we trained two supervised machine learning models on the extracted features for the prediction of self-reported valence and arousal. Here, we compared the predictive performance of linear regularized regression models (LASSO) [@zouRegularizationVariableSelection2005] with those of a non-linear tree-based Random Forest model [@breimanRandomForests2001; @wrightRangerFastImplementation2017], and a baseline model. The baseline model would predict the respective mean values for valence and arousal of the respective training set for all cases in a test set. Additionally, we included the prediction of participants' gender as a benchmark. Models were evaluated using a ten-fold five times repeated cross-validation scheme [@bischlResamplingMethodsMetaModel2012]. We blocked participants in the resampling procedure ensuring that for each train/test set pair the given participant is either in the training set or in the test set.  
 
 <!-- Model evaluation -->
-We evaluated the predictive performance of the models based on the coefficient of determination (*R*^2^) and Spearman's (rank) correlation (*r*) between the predicted scores and participants’ self-reported scores. To determine whether a model was predictive beyond chance (*alpha* = 0.05), we carried out variance-corrected (one-sided) t-tests comparing the *R*^2^ measures of all prediction models with those of the baseline models [@nadeauInferenceGeneralizationError2003]. We adjusted for multiple comparison via Holm correction. 
+We evaluated the predictive performance of the models based on the coefficient of determination (*R*^2^) and Spearman's (rank) correlation (*r*) between the predicted scores and participants’ self-reported scores. To determine whether a model was predictive beyond chance (*alpha* = 0.05), we carried out variance-corrected (one-sided) t-tests comparing the *R*^2^ measures of prediction models with those of the baseline models [@nadeauInferenceGeneralizationError2003]. We adjusted for multiple comparison via Holm correction. 
 
 <!-- Software -->
-All data processing and statistical analyses in this work were performed with the statistical software R version 4.1.1 [@rcoreteamLanguageEnvironmentStatistical2021]. For machine learning, we used the *mlr3* framework [@langMlr3ModernObjectoriented2019]. Specifically, we used the *glmnet* [@friedmanRegularizationPathsGeneralized2010] and *ranger* [@wrightRangerFastImplementation2017] packages to fit prediction models. To quantify the impact of single predictors in Random Forest prediction models, we computed (out-of-bag) permutation feature importance using the *DALEX* package [@wrightLittleInteractionsGet2016; @biecekDALEXExplainersComplex2018]. We preregistered study 1 as a transparent account of our work [@kochPredictingAffectiveStates2021].
+All data processing and statistical analyses in this work were performed with the statistical software R version 4.1.1 [@rcoreteamLanguageEnvironmentStatistical2021]. For machine learning, we used the *mlr3* framework [@langMlr3ModernObjectoriented2019]. Specifically, we used the *glmnet* [@friedmanRegularizationPathsGeneralized2010] and *ranger* [@wrightRangerFastImplementation2017] packages to fit prediction models. To quantify the impact of predictor groups and single predictors in prediction models, we computed (out-of-bag) permutation feature importance using the *DALEX* package [@wrightLittleInteractionsGet2016; @biecekDALEXExplainersComplex2018]. We preregistered study 1 as a transparent account of our work [@kochPredictingAffectiveStates2021].
 
 ### Results
 

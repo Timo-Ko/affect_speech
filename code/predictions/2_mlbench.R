@@ -367,9 +367,9 @@ lrn_rr = lrn("regr.cv_glmnet"#,
              ) # lasso
 
 # enable parallelization
-set_threads(lrn_fl, n = detectCores())
-set_threads(lrn_rr, n = detectCores())
-set_threads(lrn_rf, n = detectCores())
+set_threads(lrn_fl, n = 5)
+set_threads(lrn_rr, n = 5)
+set_threads(lrn_rf, n = 5)
 
 #### HYPERPARAMETER TUNING ####
 
@@ -404,7 +404,7 @@ lrn_rr_po = po_impute_hist  %>>% lrn_rr
 
 #### RESAMPLING ####
 
-resampling = rsmp("cv", folds = 10L)
+resampling = rsmp("repeated_cv", repeats = 5, folds = 10)
 
 #### BENCHMARK: STUDY 1 ####
 

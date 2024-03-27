@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "data.table", "ranger", "ggplot2", "mlr3", "mlr3learners", "parallel", "mlr3tuning", "stringr", "DALEX", "DALEXtra", "iml", "patchwork")
+packages <- c( "dplyr", "data.table", "ranger", "ggplot2", "mlr3verse", "mlr3learners", "parallel", "mlr3tuning", "stringr", "DALEX", "DALEXtra", "iml", "patchwork")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -41,7 +41,6 @@ egemaps_arousal_study2 = TaskRegr$new(id = "egemaps_arousal",
                                                                                       which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
                                       target = "arousal")
 
-
 # create pipeline to impute missings
 po_impute = po("imputehist") 
 
@@ -77,9 +76,6 @@ egemaps_arousal_study2 = TaskRegr$new(id = "egemaps_arousal",
 # create lasso learner 
 lrn_rr = lrn("regr.cv_glmnet")
 
-# enable parallelization
-set_threads(lrn_rf, n = 5)
-
 # train models
 
 future::plan("multisession", workers = 5) # enable parallelization
@@ -93,7 +89,7 @@ saveRDS(model_rr_egemaps_arousal_study1, "results/study1/model_rr_egemaps_arousa
 saveRDS(model_rr_egemaps_content_study2, "results/study2/model_rr_egemaps_content_study2.rds") 
 saveRDS(model_rr_egemaps_arousal_study2, "results/study2/model_rr_egemaps_arousal_study2.rds") 
 
-#### GROUPED FEATURE IMPORTANCE PER ATTRIBUTE ####
+#### GROUPED FEATURE IMPORTANCE PER GROUP ####
 
 ## create dalex explainers for each model 
 
@@ -169,6 +165,12 @@ saveRDS(plot_vi_grouped, "plot_imp_grouped.rds")
 
 #### SINGLE FEATURE IMPORTANCE: VOICE FEATURES ####
 
+# load models 
+
+model_rr_egemaps_arousal_study1 <- readRDS( "results/study1/model_rr_egemaps_arousal_study1.rds") 
+model_rr_egemaps_content_study2 <- readRDS("results/study2/model_rr_egemaps_content_study2.rds") 
+model_rr_egemaps_arousal_study2 <- readRDS( "results/study2/model_rr_egemaps_arousal_study2.rds") 
+
 ## get selected features from lasso model 
 
 model_rr_egemaps_arousal_study1$selected_features()
@@ -176,7 +178,14 @@ model_rr_egemaps_content_study2$selected_features()
 model_rr_egemaps_arousal_study2$selected_features()
 
 ## extract regression weights from lasso  (?)
-betas = model_rr_egemaps_arousal_study1$state$model$glmnet.fit$beta
+betas_egemaps_arousal = model_rr_egemaps_arousal_study1$state$model$glmnet.fit$beta
+
+test = model_rr_egemaps_arousal_study1$state$model$beta
+
+beta_weights <- as.vector(coef(model_rr_egemaps_arousal_study1, s = "lambda.min")[-1]) # Exclude the intercept
+
+coef(model_rr_egemaps_arousal_study1)
+
 
 ## get permutation feature importance for single features
 
