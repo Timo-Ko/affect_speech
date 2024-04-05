@@ -60,29 +60,29 @@ affect_voice_study2_arousal_imputed = as.data.frame(egemaps_arousal_study2_imp$d
 ## create new prediction tasks w imputed data
 
 # study 1
-egemaps_arousal_study1 = TaskRegr$new(id = "egemaps_valence", 
+egemaps_arousal_study1_imp = TaskRegr$new(id = "egemaps_arousal_study1_imp", 
                                       backend = affect_voice_study1_arousal_imputed,
                                       target = "arousal")
 
 # study 2
-egemaps_content_study2 = TaskRegr$new(id = "egemaps_content", 
+egemaps_content_study2_imp = TaskRegr$new(id = "egemaps_content_study2_imp", 
                                       backend = affect_voice_study2_content_imputed,
                                       target = "content")
 
-egemaps_arousal_study2 = TaskRegr$new(id = "egemaps_arousal", 
+egemaps_arousal_study2_imp = TaskRegr$new(id = "egemaps_arousal_study2_imp", 
                                       backend = affect_voice_study2_arousal_imputed,
                                       target = "arousal")
 
-# create lasso learner 
-lrn_rr = lrn("regr.cv_glmnet")
+# create lasso learners
+lrn_rr_arousal_study1 = lrn("regr.cv_glmnet")
+lrn_rr_content_study2 = lrn("regr.cv_glmnet")
+lrn_rr_arousal_study2 = lrn("regr.cv_glmnet")
 
 # train models
 
-future::plan("multisession", workers = 5) # enable parallelization
-
-model_rr_egemaps_arousal_study1 <- lrn_rr$train(egemaps_arousal_study1) # train model
-model_rr_egemaps_content_study2 <- lrn_rr$train(egemaps_content_study2) # train model
-model_rr_egemaps_arousal_study2 <- lrn_rr$train(egemaps_arousal_study2) # train model
+model_rr_egemaps_arousal_study1 <- lrn_rr_arousal_study1$train(egemaps_arousal_study1_imp) # train model
+model_rr_egemaps_content_study2 <- lrn_rr_content_study2$train(egemaps_content_study2_imp) # train model
+model_rr_egemaps_arousal_study2 <- lrn_rr_arousal_study2$train(egemaps_arousal_study2_imp) # train model
 
 # save trained models
 saveRDS(model_rr_egemaps_arousal_study1, "results/study1/model_rr_egemaps_arousal_study1.rds") 
@@ -90,6 +90,12 @@ saveRDS(model_rr_egemaps_content_study2, "results/study2/model_rr_egemaps_conten
 saveRDS(model_rr_egemaps_arousal_study2, "results/study2/model_rr_egemaps_arousal_study2.rds") 
 
 #### GROUPED FEATURE IMPORTANCE PER GROUP ####
+
+# load models 
+
+model_rr_egemaps_arousal_study1 <- readRDS( "results/study1/model_rr_egemaps_arousal_study1.rds") 
+model_rr_egemaps_content_study2 <- readRDS("results/study2/model_rr_egemaps_content_study2.rds") 
+model_rr_egemaps_arousal_study2 <- readRDS( "results/study2/model_rr_egemaps_arousal_study2.rds") 
 
 ## create dalex explainers for each model 
 
@@ -177,54 +183,56 @@ model_rr_egemaps_arousal_study1$selected_features()
 model_rr_egemaps_content_study2$selected_features()
 model_rr_egemaps_arousal_study2$selected_features()
 
-## extract regression weights from lasso  (?)
-betas_egemaps_arousal = model_rr_egemaps_arousal_study1$state$model$glmnet.fit$beta
+## get beta weights from lasso model 
+coef_arousal_study1 = coef(model_rr_egemaps_arousal_study1$model, s = "lambda.1se") #s because this was the value used for training/evaluation
+coef_content_study2 = coef(model_rr_egemaps_content_study2$model, s = "lambda.1se") #s because this was the value used for training/evaluation
+coef_arousal_study2 = coef(model_rr_egemaps_arousal_study2$model, s = "lambda.1se") #s because this was the value used for training/evaluation
 
-test = model_rr_egemaps_arousal_study1$state$model$beta
+coefficients_arousal_study1 = extract_beta_coefficients(coef_arousal_study1)[[1]]
+coefficients_content_study2 = extract_beta_coefficients(coef_content_study2)[[1]]
+coefficients_arousal_study2 = extract_beta_coefficients(coef_arousal_study2)[[1]]
 
-beta_weights <- as.vector(coef(model_rr_egemaps_arousal_study1, s = "lambda.min")[-1]) # Exclude the intercept
-
-coef(model_rr_egemaps_arousal_study1)
-
-
-## get permutation feature importance for single features
-
-imp_arousal_study1 = DALEX::model_parts(explainer = rr_exp_arousal_study1,
-                                                loss_function = loss_root_mean_square,
-                                                B = 10, # number of permutations
-                                                type = "variable_importance")
-
-imp_content_study2 = DALEX::model_parts(explainer = rr_exp_content_study2,
-                                        loss_function = loss_root_mean_square,
-                                        B = 10, # number of permutations
-                                        type = "variable_importance")
-
-imp_arousal_study2 = DALEX::model_parts(explainer = rr_exp_arousal_study2,
-                                        loss_function = loss_root_mean_square,
-                                        B = 10, # number of permutations
-                                        type = "variable_importance")
-
-## check feature effects for important features: pdp and ice plot
-
-# loudness
-effect = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "loudness_sma3_percentile20.0",
-                           method = "pdp+ice")
-effect$plot()
-
-pdp_loudness = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "loudness_sma3_stddevNorm",
-                                     method = "pdp+ice")
-pdp_loudness$plot()
+# compute abs betas or number of features from each subgroup in the final model?
 
 
-# spectral flux
-pdp_spectralflux = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "spectralFluxUV_sma3nz_amean",
-                           method = "pdp+ice")
-pdp_spectralflux$plot()
+# ## supplement: get permutation feature importance for single features
+# 
+# imp_arousal_study1 = DALEX::model_parts(explainer = rr_exp_arousal_study1,
+#                                                 loss_function = loss_root_mean_square,
+#                                                 B = 10, # number of permutations
+#                                                 type = "variable_importance")
+# 
+# imp_content_study2 = DALEX::model_parts(explainer = rr_exp_content_study2,
+#                                         loss_function = loss_root_mean_square,
+#                                         B = 10, # number of permutations
+#                                         type = "variable_importance")
+# 
+# imp_arousal_study2 = DALEX::model_parts(explainer = rr_exp_arousal_study2,
+#                                         loss_function = loss_root_mean_square,
+#                                         B = 10, # number of permutations
+#                                         type = "variable_importance")
 
-# pitch
-pdp_pitch = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "F0semitoneFrom27.5Hz_sma3nz_percentile50.0",
-                                     method = "pdp+ice")
-pdp_pitch$plot()
+# ## check feature effects for important features: pdp and ice plot
+# 
+# # loudness
+# effect = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "loudness_sma3_percentile20.0",
+#                            method = "pdp+ice")
+# effect$plot()
+# 
+# pdp_loudness = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "loudness_sma3_stddevNorm",
+#                                      method = "pdp+ice")
+# pdp_loudness$plot()
+# 
+# 
+# # spectral flux
+# pdp_spectralflux = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "spectralFluxUV_sma3nz_amean",
+#                            method = "pdp+ice")
+# pdp_spectralflux$plot()
+# 
+# # pitch
+# pdp_pitch = FeatureEffect$new(predictor_egemaps_arousal_study1, feature = "F0semitoneFrom27.5Hz_sma3nz_percentile50.0",
+#                                      method = "pdp+ice")
+# pdp_pitch$plot()
 
 
 ## create tasks
