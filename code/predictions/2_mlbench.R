@@ -383,7 +383,7 @@ set_threads(lrn_rf, n = 5)
 #   tuner = tnr("random_search"),
 #   store_models = TRUE
 # )
-# 
+# # 
 # at_rr = AutoTuner$new(
 #   learner = lrn_rr,
 #   resampling = rsmp("cv", folds = 5),
@@ -395,12 +395,14 @@ set_threads(lrn_rf, n = 5)
 
 ### PREPROCESSING IN CV ####
 
-po_impute_hist = po("imputehist") 
-po_impute_oor = po("imputeoor") 
+po_scale = po("scale") # scaling features
+
+po_impute_hist = po("imputehist") # hist imputation
+po_impute_oor = po("imputeoor") # out of range imputation
 
 # combine training with pre-processing
-lrn_rf_po = po_impute_oor  %>>% lrn_rf
-lrn_rr_po = po_impute_hist  %>>% lrn_rr
+lrn_rf_po = po_scale %>>% po_impute_oor  %>>% lrn_rf
+lrn_rr_po = po_scale %>>% po_impute_hist  %>>% lrn_rr
 
 #### RESAMPLING ####
 
@@ -731,7 +733,8 @@ bmr_plot_srho <-
   coord_flip() + # flip coordinates
   guides(color = guide_legend(reverse = TRUE),
          shape = guide_legend(reverse = TRUE)) +
-  theme(legend.position = "none")
+  theme(legend.position = "top", 
+        legend.key.size = unit(0.5, "cm"))
 
 
 # plot rsq
@@ -775,20 +778,42 @@ bmr_plot_rsq <-
   theme(axis.text.x = element_text(angle = -45, hjust = 0), axis.text.y = element_blank()) +
   coord_flip() +
   guides(color = guide_legend(reverse = TRUE), shape = guide_legend(reverse = TRUE)) +
-  theme(legend.position = "right", 
+  theme(legend.position = "top", 
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
-        legend.key.size = unit(1, "cm"))
-
-
+        legend.key.size = unit(0.5, "cm"))
 
 # use patchwork to combine plots for spearman r and rsq into one figure
 
-bmr_plot = bmr_plot_srho | bmr_plot_rsq
+get_legend <- function(myplot) {
+  # Extract legends
+  tmp <- ggplotGrob(myplot)
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+
+# Extract the legend
+legend <- get_legend(bmr_plot_rsq)
+
+legend2 <- get_legend(bmr_plot_srho)
+
+plot(legend)
+
+bmr_plot_srho <- bmr_plot_srho + theme(legend.position = "none") # remove legend 
+
+bmr_plot_rsq <- bmr_plot_rsq + theme(legend.position = "none") # remove legend 
+
+
+bmr_plot <- bmr_plot_srho + bmr_plot_rsq + plot_layout(guides = "collect") & theme(legend.position = "top")
+
+# Display the combined plot
+bmr_plot 
 
 # save figure
 
-png(file="figures/bmr_plot.png",width=1500, height=1000)
+png(file="figures/bmr_plot.png",width=1000, height=1000)
 
 bmr_plot
 

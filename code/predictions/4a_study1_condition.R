@@ -14,19 +14,20 @@ affect_egemaps <- readRDS("data/study1/affect_voice_study1.rds")
 
 ## create plot showing the prediction error on y axis and valence/ arousal score on x-axis with 3 curves (sentence conditions separate and all together)
 
-## get predictions from rf
-aggr = bmr_egemaps$aggregate(msrs("regr.mae"))
-rf_valence = aggr$resample_result[[2]]
-predictions_valence <- as.data.table(rf_valence$prediction())
+aggr = bmr_egemaps$aggregate(msrs("regr.mae")) # get aggr performance
+
+## get valence predictions 
+rr_valence = aggr$resample_result[[3]]
+predictions_valence <- as.data.table(rr_valence$prediction())
 predictions_valence$target_1 <- as.factor("valence")
 
 # rename columns
 colnames(predictions_valence)[colnames(predictions_valence) == 'truth'] <- 'truth_valence'
 colnames(predictions_valence)[colnames(predictions_valence) == 'response'] <- 'response_valence'
 
-## get predictions from rf
-rf_arousal = aggr$resample_result[[8]]
-predictions_arousal <- as.data.table(rf_arousal$prediction())
+## get arousal predictions 
+rr_arousal = aggr$resample_result[[6]]
+predictions_arousal <- as.data.table(rr_arousal$prediction())
 predictions_arousal$target_2 <- as.factor("arousal")
 
 # rename columns
@@ -73,11 +74,12 @@ predictions_condition_plot <- ggplot(predictions_condition_long, aes(x= conditio
   geom_boxplot() +
   scale_x_discrete("Sentence sentiment") +
   scale_y_continuous("Absolute prediction error") + 
-  theme_minimal(base_size = 20) + labs(x ="Sentence sentiment", color="Prediction Target")
+  theme_minimal(base_size = 20) + labs(x ="Sentence sentiment", color="Prediction Target") +
+  theme(legend.position="top")
 
 # save plot
 
-png(file="figures/predictions_condition_plot.png",width=1000, height=700)
+png(file="figures/predictions_condition_study1_plot.png",width=1000, height=700)
 
 predictions_condition_plot
 

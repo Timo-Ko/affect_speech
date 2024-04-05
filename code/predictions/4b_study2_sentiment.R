@@ -23,29 +23,28 @@ summary(affect_voice_wordembeddings$Sentiment.score)
 ## get predictions from lasso (best performing algo) for contentedness
 aggr = bmr_egemaps$aggregate(msrs("regr.mae"))
 
+## get predictions from lasso (best performing algo) for arousal
+rr_arousal = aggr$resample_result[[3]]
+predictions_arousal <- as.data.table(rr_arousal$prediction())
 
-rf_content = aggr$resample_result[[2]]
-predictions_content <- as.data.table(rf_content$prediction())
+# rename columns
+colnames(predictions_arousal)[colnames(predictions_arousal) == 'truth'] <- 'truth_arousal'
+colnames(predictions_arousal)[colnames(predictions_arousal) == 'response'] <- 'response_arousal'
+
+rr_content = aggr$resample_result[[6]]
+predictions_content <- as.data.table(rr_content$prediction())
 
 # rename columns
 colnames(predictions_content)[colnames(predictions_content) == 'truth'] <- 'truth_content'
 colnames(predictions_content)[colnames(predictions_content) == 'response'] <- 'response_content'
 
 ## get predictions from lasso (best performing algo) for sad
-rf_sad = aggr$resample_result[[8]]
-predictions_sad <- as.data.table(rf_sad$prediction())
+rr_sad = aggr$resample_result[[9]]
+predictions_sad <- as.data.table(rr_sad$prediction())
 
 # rename columns
 colnames(predictions_sad)[colnames(predictions_sad) == 'truth'] <- 'truth_sad'
 colnames(predictions_sad)[colnames(predictions_sad) == 'response'] <- 'response_sad'
-
-## get predictions from lasso (best performing algo) for arousal
-rf_arousal = aggr$resample_result[[14]]
-predictions_arousal <- as.data.table(rf_arousal$prediction())
-
-# rename columns
-colnames(predictions_arousal)[colnames(predictions_arousal) == 'truth'] <- 'truth_arousal'
-colnames(predictions_arousal)[colnames(predictions_arousal) == 'response'] <- 'response_arousal'
 
 # create one df
 predictions_sentiment <- cbind(predictions_content, predictions_sad, predictions_arousal, affect_voice_wordembeddings$Sentiment.score)
@@ -88,9 +87,9 @@ predictions_sentiment_long <- predictions_sentiment_long %>%
 sentiment_error_plot <- ggplot(data = predictions_sentiment_long[,c("sentiment", "error", "target")], 
                                    aes_string(x= "sentiment" , y= "error", color = "target")) +
   #geom_point() +
-  stat_smooth(method='loess', se = T, span = 1)+
+  stat_smooth(method='loess', se = F, span = 1)+
   scale_x_continuous("Sentiment score") +
-  scale_y_continuous("Absolute prediction error") + 
+  scale_y_continuous("Absolute prediction error", limits = c(0,1)) + 
   theme_minimal(base_size = 20 ) + labs(colour = "Prediction Target") +
   theme(legend.position="top")
 
@@ -98,9 +97,21 @@ sentiment_error_plot
 
 # save figure
 
-png(file="figures/sentiment_error_plot.png",width=1000, height=750)
+png(file="figures/sentiment_error_study2_plot.png",width=1000, height=750)
 
 sentiment_error_plot
+
+dev.off()
+
+## combine figures from study 1 and study 2
+
+content_error_combined <- predictions_condition_plot / sentiment_error_plot
+
+# save combined figure
+
+png(file="figures/content_error_combined_plot.png",width=750, height=1500)
+
+content_error_combined 
 
 dev.off()
 
