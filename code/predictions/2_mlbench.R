@@ -722,7 +722,7 @@ bmr_plot_srho <-
       "Arousal (Voice + Embeddings)"
     )
     )) +
-  scale_color_manual(values = c("#377eb8", "#4daf4a", "#e41a1c"), name = "Algorithm") +
+  scale_color_manual(values = c("#a6cee3", "#1f78b4", "#b2df8a"), name = "Algorithm") +
   scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
   scale_y_continuous(name = bquote("Spearman correlation (r)"), limits = c(-0.1, 0.5)) +
   geom_hline(yintercept = 0, linetype = 'dotted') +
@@ -768,7 +768,7 @@ bmr_plot_rsq <-
     position = position_dodge(0.5)
   ) +
   geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5), size = 3, alpha = 0.5) +
-  scale_color_manual(values = c("#377eb8", "#4daf4a", "#e41a1c"), name = "Algorithm") +
+  scale_color_manual(values = c("#a6cee3", "#1f78b4", "#b2df8a"), name = "Algorithm") +
   scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
   scale_y_continuous(name = bquote(paste("R" ^ 2)), limits = c(-0.15, 0.15)) +
   geom_hline(yintercept = 0, linetype = 'dotted') +

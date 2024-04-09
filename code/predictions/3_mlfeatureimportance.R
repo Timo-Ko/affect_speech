@@ -8,6 +8,8 @@ lapply(packages, library, character.only = TRUE)
 
 set.seed(123, kind = "L'Ecuyer") # set seed to make sure all results are reproducible
 
+source("code/functions/extract_betas.R")
+
 # study 1
 affect_voice_study1  <- readRDS("data/study1/affect_voice_study1_ml.rds")
 
@@ -191,6 +193,16 @@ coef_arousal_study2 = coef(model_rr_egemaps_arousal_study2$model, s = "lambda.1s
 coefficients_arousal_study1 = extract_beta_coefficients(coef_arousal_study1)[[1]]
 coefficients_content_study2 = extract_beta_coefficients(coef_content_study2)[[1]]
 coefficients_arousal_study2 = extract_beta_coefficients(coef_arousal_study2)[[1]]
+
+rownames(coefficients_arousal_study1) <- NULL
+rownames(coefficients_content_study2) <- NULL
+rownames(coefficients_arousal_study2) <- NULL
+
+# save betas
+write.csv2(coefficients_arousal_study1, "results/coefficients_arousal_study1.csv")
+write.csv2(coefficients_content_study2, "results/coefficients_content_study2.csv")
+write.csv2(coefficients_arousal_study2, "results/coefficients_arousal_study2.csv")
+
 
 # compute abs betas or number of features from each subgroup in the final model?
 
