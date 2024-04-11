@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "data.table", "ranger", "ggplot2", "mlr3verse", "mlr3learners", "parallel", "mlr3tuning", "stringr", "DALEX", "DALEXtra", "iml", "patchwork")
+packages <- c( "dplyr", "data.table", "ranger", "ggplot2", "mlr3verse", "mlr3learners", "parallel", "mlr3tuning", "stringr", "DALEX", "DALEXtra", "iml", "patchwork", "forcats")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -59,21 +59,30 @@ affect_voice_study2_arousal_imputed = as.data.frame(egemaps_arousal_study2_imp$d
 
 #### TRAIN MODELS ####
 
+# standardize outcome variables bc they are scaled differently!
+summary(affect_voice_study1_arousal_imputed$arousal)
+summary(affect_voice_study2_arousal_imputed$arousal)
+summary(affect_voice_study2_content_imputed$content)
+
+affect_voice_study1_arousal_imputed$arousal_stand <- scale(affect_voice_study1_arousal_imputed$arousal, center = TRUE, scale = TRUE)
+affect_voice_study2_arousal_imputed$arousal_stand <- scale(affect_voice_study2_arousal_imputed$arousal, center = TRUE, scale = TRUE)
+affect_voice_study2_content_imputed$content_stand <- scale(affect_voice_study2_content_imputed$content, center = TRUE, scale = TRUE)
+
 ## create new prediction tasks w imputed data
 
 # study 1
 egemaps_arousal_study1_imp = TaskRegr$new(id = "egemaps_arousal_study1_imp", 
-                                      backend = affect_voice_study1_arousal_imputed,
-                                      target = "arousal")
+                                      backend = subset(affect_voice_study1_arousal_imputed, select = -arousal),
+                                      target = "arousal_stand")
 
 # study 2
 egemaps_content_study2_imp = TaskRegr$new(id = "egemaps_content_study2_imp", 
-                                      backend = affect_voice_study2_content_imputed,
-                                      target = "content")
+                                      backend = subset(affect_voice_study2_content_imputed, select = -content),
+                                      target = "content_stand")
 
 egemaps_arousal_study2_imp = TaskRegr$new(id = "egemaps_arousal_study2_imp", 
-                                      backend = affect_voice_study2_arousal_imputed,
-                                      target = "arousal")
+                                      backend = subset(affect_voice_study2_arousal_imputed, select = -arousal),
+                                      target = "arousal_stand")
 
 # create lasso learners
 lrn_rr_arousal_study1 = lrn("regr.cv_glmnet")
@@ -91,7 +100,129 @@ saveRDS(model_rr_egemaps_arousal_study1, "results/study1/model_rr_egemaps_arousa
 saveRDS(model_rr_egemaps_content_study2, "results/study2/model_rr_egemaps_content_study2.rds") 
 saveRDS(model_rr_egemaps_arousal_study2, "results/study2/model_rr_egemaps_arousal_study2.rds") 
 
-#### GROUPED FEATURE IMPORTANCE PER GROUP ####
+#### SINGLE FEATURE IMPORTANCE: VOICE FEATURES ####
+
+# load models 
+
+model_rr_egemaps_arousal_study1 <- readRDS( "results/study1/model_rr_egemaps_arousal_study1.rds") 
+model_rr_egemaps_content_study2 <- readRDS("results/study2/model_rr_egemaps_content_study2.rds") 
+model_rr_egemaps_arousal_study2 <- readRDS( "results/study2/model_rr_egemaps_arousal_study2.rds") 
+
+## get selected features from lasso model 
+
+model_rr_egemaps_arousal_study1$selected_features()
+model_rr_egemaps_content_study2$selected_features()
+model_rr_egemaps_arousal_study2$selected_features()
+
+## get beta weights from lasso model 
+coef_arousal_study1 = coef(model_rr_egemaps_arousal_study1$model, s = "lambda.1se") #s because this was the value used for training/evaluation
+coef_content_study2 = coef(model_rr_egemaps_content_study2$model, s = "lambda.1se") #s because this was the value used for training/evaluation
+coef_arousal_study2 = coef(model_rr_egemaps_arousal_study2$model, s = "lambda.1se") #s because this was the value used for training/evaluation
+
+coefficients_arousal_study1 = extract_beta_coefficients(coef_arousal_study1)[[1]]
+coefficients_content_study2 = extract_beta_coefficients(coef_content_study2)[[1]]
+coefficients_arousal_study2 = extract_beta_coefficients(coef_arousal_study2)[[1]]
+
+rownames(coefficients_arousal_study1) <- NULL
+rownames(coefficients_content_study2) <- NULL
+rownames(coefficients_arousal_study2) <- NULL
+
+# save betas
+write.csv2(coefficients_arousal_study1, "results/coefficients_arousal_study1.csv")
+write.csv2(coefficients_content_study2, "results/coefficients_content_study2.csv")
+write.csv2(coefficients_arousal_study2, "results/coefficients_arousal_study2.csv")
+
+# compute abs betas or number of features from each subgroup in the final model?
+# dots und dann profil verbinden?
+
+# find features that are in study 2 models and also in arousal study 1 model 
+
+# features_study2 <- unique(coefficients_content_study2$Variable, coefficients_arousal_study2$Variable)
+# 
+# shared_features <- coefficients_arousal_study1 %>% filter(coefficients_arousal_study1$Variable %in% features_study2)
+
+# Assuming your coefficients_arousal_study1 data frame is already sorted by Stand_Beta or you may sort it first
+# coefficients_arousal_study1 <- coefficients_arousal_study1[order(abs(coefficients_arousal_study1$Stand_Beta), decreasing = TRUE), ]
+
+# Select the top 10 features by absolute standardized beta value
+#top_features <- coefficients_arousal_study1[1:10, ]
+
+# # Add specific features if they are not already in the top 10
+# additional_features <- c("loudness_sma3_meanFallingSlope", "F3amplitudeLogRelF0_sma3nz_stddevNorm")
+# additional_features_df <- coefficients_arousal_study1[coefficients_arousal_study1$Variable %in% additional_features, ]
+# 
+# # Combine top features with the additional specific features, avoiding duplicates
+# coefficients_arousal_study1_subset <- rbind(top_features, additional_features_df)
+# coefficients_arousal_study1_subset <- subset_df[!duplicated(subset_df$Variable), ]
+
+# create data frame
+combined_df <- data.frame(
+  Feature = c(coefficients_arousal_study1$Variable[1:5], coefficients_content_study2$Variable[1:5], coefficients_arousal_study2$Variable[1:5]),
+  Stand_Beta = c(coefficients_arousal_study1$Stand_Beta[1:5], coefficients_content_study2$Stand_Beta[1:5], coefficients_arousal_study2$Stand_Beta[1:5]),
+  Task = c(rep("Arousal (scripted speech)", 5), rep("Contentedness (free speech)", 5), rep("Arousal (free speech)", 5))#,
+  #Feature_Group = c("Frequency", "Spectral", ...)
+)
+
+# Create a complete set of all combinations of features and tasks
+all_combinations <- expand.grid(Feature = unique(combined_df$Feature), Task = unique(combined_df$Task))
+
+# Left join the original data with all combinations and replace NA with 0
+combined_df <- merge(all_combinations, combined_df, by = c("Feature", "Task"), all.x = TRUE) %>%
+  replace(is.na(.), 0)
+
+combined_df$Feature <- factor(combined_df$Feature, levels = unique(combined_df$Feature)) # convert feature to factor
+
+full_feature_order <- colnames(affect_voice_study1)[14:101]
+
+# Filter the full order to include only features present in 'combined_df'
+subset_feature_order <- full_feature_order[full_feature_order %in% combined_df$Feature]
+
+# Reorder the 'Feature' factor levels in 'combined_df' according to 'subset_feature_order'
+combined_df$Feature <- factor(combined_df$Feature, levels = subset_feature_order)
+
+# Set the desired order for your tasks
+task_levels <- c("Arousal (scripted speech)", "Arousal (free speech)", "Contentedness (free speech)")
+
+# Convert Task to a factor and set levels in the desired order
+combined_df$Task <- factor(combined_df$Task, levels = task_levels)
+
+# create the plot
+
+# connected dots
+betas_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, group = Task, color = Task)) +
+  geom_point() +
+  geom_line() + # This will connect the dots in the order of factors
+  coord_flip() +
+  theme_minimal() +
+  labs(x = element_blank() ,y = "Standardized Beta Coefficient") +
+  theme(axis.text.x = element_text(angle = 65, hjust = 1), legend.position = "top") + # Rotate x labels for better readability
+  scale_color_manual(values = c("Arousal (free speech)" = "#1f78b4" ,
+                                "Arousal (scripted speech)" = "#a6cee3", 
+                                "Contentedness (free speech)" = "#b2df8a"))
+
+# grouped bar plot
+betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, fill = Task)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.7) + # Use position_dodge to create grouped bars
+  coord_flip() + # Flips the axes so that features are on the y-axis
+  theme_minimal() +
+  labs(y = "Standardized Beta Coefficient", x = element_blank()) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5), # Adjust text angle and position for readability
+         legend.position = "top") + # Positions the legend at the top
+  scale_fill_manual(values = c("Arousal (free speech)" = "#1f78b4",
+                               "Arousal (scripted speech)" = "#a6cee3", 
+                               "Contentedness (free speech)" = "#b2df8a"))
+
+                  
+
+# save plot 
+png(file="figures/betas_plot.png",width=750, height=750)
+
+betas_plot 
+
+dev.off()
+
+
+#### GROUPED FEATURE IMPORTANCE PER FEATURE GROUP ####
 
 # load models 
 
@@ -143,10 +274,10 @@ names(variable_groups) <- c("frequency", "energy_amplitude", "spectral", "tempor
 ## compute grouped permutation feature importance
 
 imp_grouped_arousal_study1 = DALEX::model_parts(explainer = rr_exp_arousal_study1,
-                                 loss_function = loss_root_mean_square,
-                                 B = 10, # number of permutations
-                                 type = "variable_importance",
-                                 variable_groups = variable_groups)
+                                                loss_function = loss_root_mean_square,
+                                                B = 10, # number of permutations
+                                                type = "variable_importance",
+                                                variable_groups = variable_groups)
 
 imp_grouped_content_study2 = DALEX::model_parts(explainer = rr_exp_content_study2,
                                                 loss_function = loss_root_mean_square,
@@ -170,41 +301,6 @@ plot_vi_grouped = plot(imp_grouped_arousal_study1) +
 
 saveRDS(plot_vi_grouped, "plot_imp_grouped.rds")
 
-
-#### SINGLE FEATURE IMPORTANCE: VOICE FEATURES ####
-
-# load models 
-
-model_rr_egemaps_arousal_study1 <- readRDS( "results/study1/model_rr_egemaps_arousal_study1.rds") 
-model_rr_egemaps_content_study2 <- readRDS("results/study2/model_rr_egemaps_content_study2.rds") 
-model_rr_egemaps_arousal_study2 <- readRDS( "results/study2/model_rr_egemaps_arousal_study2.rds") 
-
-## get selected features from lasso model 
-
-model_rr_egemaps_arousal_study1$selected_features()
-model_rr_egemaps_content_study2$selected_features()
-model_rr_egemaps_arousal_study2$selected_features()
-
-## get beta weights from lasso model 
-coef_arousal_study1 = coef(model_rr_egemaps_arousal_study1$model, s = "lambda.1se") #s because this was the value used for training/evaluation
-coef_content_study2 = coef(model_rr_egemaps_content_study2$model, s = "lambda.1se") #s because this was the value used for training/evaluation
-coef_arousal_study2 = coef(model_rr_egemaps_arousal_study2$model, s = "lambda.1se") #s because this was the value used for training/evaluation
-
-coefficients_arousal_study1 = extract_beta_coefficients(coef_arousal_study1)[[1]]
-coefficients_content_study2 = extract_beta_coefficients(coef_content_study2)[[1]]
-coefficients_arousal_study2 = extract_beta_coefficients(coef_arousal_study2)[[1]]
-
-rownames(coefficients_arousal_study1) <- NULL
-rownames(coefficients_content_study2) <- NULL
-rownames(coefficients_arousal_study2) <- NULL
-
-# save betas
-write.csv2(coefficients_arousal_study1, "results/coefficients_arousal_study1.csv")
-write.csv2(coefficients_content_study2, "results/coefficients_content_study2.csv")
-write.csv2(coefficients_arousal_study2, "results/coefficients_arousal_study2.csv")
-
-
-# compute abs betas or number of features from each subgroup in the final model?
 
 
 # ## supplement: get permutation feature importance for single features

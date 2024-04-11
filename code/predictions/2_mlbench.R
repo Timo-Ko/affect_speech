@@ -570,7 +570,7 @@ bmr_egemaps_gender_study2 <- readRDS("results/study2/bmr_gender_study2.rds")
 
 ## view aggregated performance 
 
-mes = c(msr("regr.srho"), msr("regr.rsq"))
+mes = c(msr("regr.srho"), msr("regr.rsq"), msr("regr.rmse"))
 
 # study 1
 
@@ -808,8 +808,6 @@ bmr_plot_rsq <- bmr_plot_rsq + theme(legend.position = "none") # remove legend
 
 bmr_plot <- bmr_plot_srho + bmr_plot_rsq + plot_layout(guides = "collect") & theme(legend.position = "top")
 
-# Display the combined plot
-bmr_plot 
 
 # save figure
 
