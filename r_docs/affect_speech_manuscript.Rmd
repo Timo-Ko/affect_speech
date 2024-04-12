@@ -58,7 +58,7 @@ affiliation:
     institution   : "Department of Psychology, The University of Texas at Austin"
   - id            : "6"
     institution   : "Media Informatics Group, Ludwig-Maximilians-Universität München"
-
+note: "\\clearpage" #added this to move entire author note to second page
 authornote: |
   Conflict of interest: none
   Acknowledgements: We thank Peter Ehrich and Dominik Heinrich for their support with the technical implementation of the on-device voice feature extraction and the ZPID for the support with data collection for study 1. Thank you Sumer Vaid for the technical support with the set up of the environment for the analyses of study 2. This project was supported by the Swiss National Science Foundation (SNSF) under project number 215303 and a scholarship of the German Academic Scholarship Foundation awarded to the first author.
@@ -67,8 +67,8 @@ authornote: |
 abstract: |
   Advances in the area of artificial intelligence (AI) and the ubiquity of speech data, for example from voice assistants, have created numerous commercial products that claim to be able to automatically recognize emotions from human voice. However, the employed algorithms have often been trained solely on enacted or labelled speech samples from artificial lab settings representing affect *expression* and are used to infer everyday subjective affect *experience*. In the present work, we investigate if machine learning algorithms can truly recognize subjective affect momentary experience from speech samples collected in the wild. In two studies, we extract acoustic voice parameters and state-of-the-art word embeddings from 24766 speech samples with corresponding experience-sampled self-reports on momentary affect experience from 997 participants collected using off-the-shelf smartphones. While voice acoustics provide limited predictive information of subjective affective arousal, speech content is much more predictive. From voice cues, the fundamental frequency, spectral flux, and loudness revealed most affective information. Further, experimental and explorative findings suggest that emotional speech content does not affect predictions from voice acoustics (i.e., what someone talks about does not affect how well emotions can be inferred from voice cues alone). We discuss implications for the algorithmic monitoring of affect experience from speech in everyday life.
   
-keywords          : "Affect, Speech, Voice, Machine Learning, Mobile Sensing"
-wordcount         : "5505"
+keywords          : "AI, Affect, Speech, Voice, Mobile Sensing"
+wordcount         : "5714"
 
 bibliography      : ["../speech_paper_library.bib"]
 
@@ -130,8 +130,6 @@ For AI models to decipher the nuanced relationship between acoustic prosody and 
 
 <!-- conclusion of intro & theory, wrap up, lead to this study, present tense! -->
 The present work leverages methodological advances in the area of smartphone-based data collection methods to investigate the AI-based recognition of subjective momentary affect experience from speech. In two large-scale studies, we train cross-validated machine learning models on acoustic voice cues and state-of-the-art word embeddings from speech samples collected in the wild. In those models, we experimentally and exploratively investigate the effects of the emotionality of speech's content on algorithmic affect recognition from voice acoustics. Moreover, we investigate which voice cues carry the most affective information. Thereby, we aim to inform potential applications and promises in automatic affect recognition from speech signals.
-
-\newpage
 
 # Method
 
@@ -263,8 +261,6 @@ On the contrary, prediction models trained on word embeddings that had been extr
 
 Finally, models trained on voice cues and word embedding combined yielded a similar prediction performance compared to those models trained on word embeddings only. This pattern suggest that predictions were mostly driven by the information coming from speech content as represented in the word embeddings. 
 
-\newpage
-
 ```{r predictionoverview, echo = FALSE, warning=FALSE, fig.cap="Box and whisker plot of out-of-sample prediction performance measures from five times repeated 10-fold cross-validation for each affect measure. The top part above the horizontal line belongs to study 1 and the part below the horizontal line to study 2.", fig.scap= "Prediction performance", out.width="100%", out.height="100%", fig.align="center",  fig.pos. = "H", results="asis"}
 
 knitr::include_graphics(path = "../figures/bmr_plot.png")
@@ -312,16 +308,14 @@ In study 2, in order to exploratively investigate the effect of the emotional va
 \newpage
 
 ## Affective voice cues
-
 <!-- general description and info-->
 For those models, that yielded better-than-chance predictions overall (i.e., arousal predictions in study 1 and 2 as well as contentedness predictions in study 2), we investigated the most informative features in a LASSO regularized model that had been trained on the full data sets. By simultaneously performing variable selection and regularization, the LASSO algorithm selects those voice parameters from the intial set of 88 voice features that are most informative and assigns those respective betas coefficients. Figure \@ref(fig:lassobetas) provides an overview of all selected voice cues in the regularized regression across prediction tasks and their standardized beta regression weights. All regression coefficients and descriptive (in-sample) correlations of voice features and self-reported affect experience are supplied in the online supplements. 
-
 <!-- arousal predictions across studies -->
 The LASSO algorithm selected more voice cues for arousal predictions from scripted speech (25) than free speech (8) and also assigned larger regression weights.
 Specifically, for the prediction of arousal from scripted speech, the variation of the third formant frequency (F3) from the speech signal was most informative. Formants are resonance frequencies in the vocal tract, and F3 is particularly important for speech clarity and vowel quality. Also the Hammarberg Index which measures the relative energy concentration in the higher frequencies compared to the lower frequencies within voiced speech segments was highly informative. 
 For arousal predictions from free speech, the variation of the logarithmic amplitude (instead of frequency) of the third formant relative to the fundamental frequency (F0) was most infomative. Also the mean and median loudness contained affective information.
 <!-- contentedness -->
-For the recognition of contentedness, the LASSO algorithm selected 18 voice parameters with the variation of the third formant frequency (F3) being most informative - analogous to the arousal model trained on scripted speech. Also the variation of the first Mel-frequency cepstral coefficient (MFCC) for voiced speech segments was found to be informative of experience contentedness. The first MFCC typically captures the overall energy in the signal
+For the recognition of contentedness, the LASSO algorithm selected 18 voice parameters with the variation of the third formant frequency (F3) being most informative - analogous to the arousal model trained on scripted speech. Also the variation of the first Mel-frequency cepstral coefficient (MFCC) for voiced speech segments was found to be informative of experience contentedness. The first MFCC typically captures the overall energy in the signal.
 
 ```{r lassobetas, echo = FALSE, warning=FALSE, fig.cap="Standardized beta coefficients for eGeMAPs voice features from LASSO (Least Absolute Shrinkage and Selection Operator) regularized regression. All voice features that have been selected by any LASSO model for any target variable are shown. The target variables have been standardized to account for their varying scaling in the data sets.", fig.scap= "LASSO betas", out.width="100%", out.height="100%", fig.align="center",  fig.pos. = "H", results="asis"}
 
@@ -341,7 +335,7 @@ In the present work, we extracted acoustic voice parameters and state-of-the-art
 Our results indicate that speech samples, and particularly their content, allow for the automatic prediction of subjective momentary affect experience. However, our machine learning models achieve a lower prediction performance as reported in prior work on automatic predictions of affect *expression* [@schullerSpeechEmotionRecognition2018]. Still, our reported performance is similar to studies predicting subjective affect *experience* from speech samples collected in the wild [@weidmanNotHearingHappiness2020; @carlierSearchStateTrait2022; @sunLanguageWellbeingTracking2020]. This observation is in line with prior research suggesting that real-life emotions are more difficult to algorithmically recognize than enacted or elicited emotions [@vogtAutomaticRecognitionEmotions2008]. Also, there are only few instances of extreme affect experiences in our data sets compared to the data used in prior studies on acted or labelled emotions. As a result, we rather predicted *mood* in this work, which is, by definition, less intense than emotions [@schererVocalCommunicationEmotion2003] and, consequently, more challenging to recognize. 
 
 <!--  content (word embeddings) way superior to voice cues (study 2) + what are implications? -->
-In Study 2, state-of-the-art word embeddings showed a superior affect prediction performance compared to voice acoustics suggesting that speech content could contain more affective information than speech form. This finding is in line with prior research that found speech content to be more predictive than voice acoustics when predicting momentary subjective experience of happiness [@weidmanNotHearingHappiness2020; @sunLanguageWellbeingTracking2020]. As a consequence, even though prior research has suggested that voice acoustics could be more relevant for human affect inferences than speech content [@ben-davidProsodySemanticsAre2016; @linProsodyDominatesSemantics2020], future research and AI applications should consider both channels - content and form - simultaneously. 
+In Study 2, state-of-the-art word embeddings showed a superior affect prediction performance compared to voice acoustics suggesting that speech content could contain more affective information than speech form. This finding is in line with prior research that found speech content to be more predictive than voice acoustics when predicting momentary subjective experience of happiness [@weidmanNotHearingHappiness2020; @sunLanguageWellbeingTracking2020]. As a consequence, even though prior research has suggested that voice acoustics could be more relevant for human affect inferences than speech content [@ben-davidProsodySemanticsAre2016; @linyiProsodyDominatesSemantics2020], future research and AI applications should consider both channels - content and form - simultaneously. 
 
 <!-- arousal predictions worked in both studies, indicating that arousal can be algorithmically detected more easily -->
 Furthermore, across the two studies, arousal predictions from voice acoustics were better than those of emotional valence, highlighting prior work showing that the latter is more challenging to automatically infer due to its individual nature [@sridharUnsupervisedPersonalizationEmotion2022]. Moreover, in line with prior work [@weidmanNotHearingHappiness2020; @sunLanguageWellbeingTracking2020], we also ran supplementary analyses for the prediction of within-person fluctuations in affect experience. Overall, those yielded weaker predictions than the between-person differences (see online supplements). 
