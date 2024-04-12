@@ -67,7 +67,7 @@ authornote: |
 abstract: |
   Advances in the area of artificial intelligence (AI) and the ubiquity of speech data, for example from voice assistants, have created numerous commercial products that claim to be able to automatically recognize emotions from human voice. However, the employed algorithms have often been trained solely on enacted or labelled speech samples from artificial lab settings representing affect *expression* and are used to infer everyday subjective affect *experience*. In the present work, we investigate if machine learning algorithms can truly recognize subjective affect momentary experience from speech samples collected in the wild. In two studies, we extract acoustic voice parameters and state-of-the-art word embeddings from 24766 speech samples with corresponding experience-sampled self-reports on momentary affect experience from 997 participants collected using off-the-shelf smartphones. While voice acoustics provide limited predictive information of subjective affective arousal, speech content is much more predictive. From voice cues, the fundamental frequency, spectral flux, and loudness revealed most affective information. Further, experimental and explorative findings suggest that emotional speech content does not affect predictions from voice acoustics (i.e., what someone talks about does not affect how well emotions can be inferred from voice cues alone). We discuss implications for the algorithmic monitoring of affect experience from speech in everyday life.
   
-keywords          : "AI, Affect, Speech, Voice, Mobile Sensing"
+keywords          : "Artificial Intelligence, Affect, Emotion, Speech, Voice"
 wordcount         : "5714"
 
 bibliography      : ["../speech_paper_library.bib"]
@@ -260,12 +260,12 @@ Also, for free speech, the employed machine learning models trained on voice aco
 On the contrary, prediction models trained on word embeddings that had been extracted from free speech yielded much better performance than voice cues. Here, speech cues were predictive of contentedness (*R*^2^ = `r round(mes_wordembeddings_study2[which(mes_wordembeddings_study2$learner_id == "imputehist.regr.cv_glmnet" & mes_wordembeddings_study2$task_id  == "wordembeddings_content")]$regr.rsq, 2)`, *r* = `r round(mes_wordembeddings_study2[which(mes_wordembeddings_study2$learner_id == "imputehist.regr.cv_glmnet" & mes_wordembeddings_study2$task_id  == "wordembeddings_content")]$regr.srho, 2)`) , arousal (*R*^2^ = `r round(mes_wordembeddings_study2[which(mes_wordembeddings_study2$learner_id == "imputehist.regr.cv_glmnet" & mes_wordembeddings_study2$task_id  == "wordembeddings_arousal")]$regr.rsq, 2)`, *r* = `r round(mes_wordembeddings_study2[which(mes_wordembeddings_study2$learner_id == "imputehist.regr.cv_glmnet" & mes_wordembeddings_study2$task_id  == "wordembeddings_arousal")]$regr.srho, 2)`),  and sadness (*R*^2^ = `r round(mes_wordembeddings_study2[which(mes_wordembeddings_study2$learner_id == "imputehist.regr.cv_glmnet" & mes_wordembeddings_study2$task_id  == "wordembeddings_sad")]$regr.rsq, 2)`, *r* = `r round(mes_wordembeddings_study2[which(mes_wordembeddings_study2$learner_id == "imputehist.regr.cv_glmnet" & mes_wordembeddings_study2$task_id  == "wordembeddings_sad")]$regr.srho, 2)`).
 
 Finally, models trained on voice cues and word embedding combined yielded a similar prediction performance compared to those models trained on word embeddings only. This pattern suggest that predictions were mostly driven by the information coming from speech content as represented in the word embeddings. 
-
+\newpage
 ```{r predictionoverview, echo = FALSE, warning=FALSE, fig.cap="Box and whisker plot of out-of-sample prediction performance measures from five times repeated 10-fold cross-validation for each affect measure. The top part above the horizontal line belongs to study 1 and the part below the horizontal line to study 2.", fig.scap= "Prediction performance", out.width="100%", out.height="100%", fig.align="center",  fig.pos. = "H", results="asis"}
 
 knitr::include_graphics(path = "../figures/bmr_plot.png")
 ```
-
+\newpage
 <!-- give some details on predictive word embeddings in study 2 ?? No! very student specific! -->
 ## Content effects on affect predictions from voice
 
@@ -302,10 +302,7 @@ affect_voice_wordembeddings_study2 <- readRDS("../data/study2/affect_voice_worde
 
 <!-- study 2: (no) Effects of sentiment on voice predictions, maybe (!) a little bit for contentedness - but keep in mind that predictions were not significant overall! -->
 In study 2, in order to exploratively investigate the effect of the emotional valence of the spoken content on affect predictions from voice cues, we used the sentiment score (*M* =`r round(mean(affect_voice_wordembeddings_study2$Sentiment.score, na.rm =T),2)`, *SD* = `r round(sd(affect_voice_wordembeddings_study2$Sentiment.score, na.rm =T),2)`) within the interval of [-1; 1] that had been assigned to each speech transcript by the Google text-to-speech API. Here, we analyzed the correlation of content sentiment with the the absolute prediction errors in the prediction of self-reported momentary arousal, contentedness, and sadness from voice cues using the LASSO algorithm. Result indicate that content sentiment did not have an effect on affect predictions from voice cues: Correlations of content sentiment with absolute predictions errors was not significant for neither contentedness (*r* = `r round(cor_error_content$estimate[[1]], 2)`, *p* > .05), sadness (*r* = `r round(cor_error_sad$estimate[[1]], 2)`, *p* > .05), nor arousal (*r* = `r round(cor_error_arousal$estimate[[1]], 2)`, *p* > .05). When interpreting those results, one has to keep in mind that overall the predictive performance of the models trained on voice cues was generally limited. We provide additional figures depicting the residuals in the online supplements. 
-
 <!-- combined error figure goes to supplements -->
-
-\newpage
 
 ## Affective voice cues
 <!-- general description and info-->
@@ -316,12 +313,11 @@ Specifically, for the prediction of arousal from scripted speech, the variation 
 For arousal predictions from free speech, the variation of the logarithmic amplitude (instead of frequency) of the third formant relative to the fundamental frequency (F0) was most infomative. Also the mean and median loudness contained affective information.
 <!-- contentedness -->
 For the recognition of contentedness, the LASSO algorithm selected 18 voice parameters with the variation of the third formant frequency (F3) being most informative - analogous to the arousal model trained on scripted speech. Also the variation of the first Mel-frequency cepstral coefficient (MFCC) for voiced speech segments was found to be informative of experience contentedness. The first MFCC typically captures the overall energy in the signal.
-
+\newpage
 ```{r lassobetas, echo = FALSE, warning=FALSE, fig.cap="Standardized beta coefficients for eGeMAPs voice features from LASSO (Least Absolute Shrinkage and Selection Operator) regularized regression. All voice features that have been selected by any LASSO model for any target variable are shown. The target variables have been standardized to account for their varying scaling in the data sets.", fig.scap= "LASSO betas", out.width="100%", out.height="100%", fig.align="center",  fig.pos. = "H", results="asis"}
 
 knitr::include_graphics(path = "../figures/betas_plot.png")
 ```
-
 \newpage
 
 # Discussion

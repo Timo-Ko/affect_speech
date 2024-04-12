@@ -811,7 +811,7 @@ bmr_plot <- bmr_plot_srho + bmr_plot_rsq + plot_layout(guides = "collect") & the
 
 # save figure
 
-png(file="figures/bmr_plot.png",width=1000, height=1000)
+png(file="figures/bmr_plot.png",width=1500, height=1500)
 
 bmr_plot
 

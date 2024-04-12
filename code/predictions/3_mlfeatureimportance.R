@@ -215,7 +215,7 @@ betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stan
                   
 
 # save plot 
-png(file="figures/betas_plot.png",width=750, height=750)
+png(file="figures/betas_plot.png",width=1500, height=1500)
 
 betas_plot 
 
