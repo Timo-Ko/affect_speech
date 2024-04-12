@@ -401,8 +401,8 @@ po_impute_hist = po("imputehist") # hist imputation
 po_impute_oor = po("imputeoor") # out of range imputation
 
 # combine training with pre-processing
-lrn_rf_po = po_scale %>>% po_impute_oor  %>>% lrn_rf
-lrn_rr_po = po_scale %>>% po_impute_hist  %>>% lrn_rr
+lrn_rf_po = po_impute_oor  %>>% lrn_rf
+lrn_rr_po =  po_impute_hist  %>>% lrn_rr
 
 #### RESAMPLING ####
 

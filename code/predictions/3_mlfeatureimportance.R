@@ -159,7 +159,7 @@ write.csv2(coefficients_arousal_study2, "results/coefficients_arousal_study2.csv
 combined_df <- data.frame(
   Feature = c(coefficients_arousal_study1$Variable[1:5], coefficients_content_study2$Variable[1:5], coefficients_arousal_study2$Variable[1:5]),
   Stand_Beta = c(coefficients_arousal_study1$Stand_Beta[1:5], coefficients_content_study2$Stand_Beta[1:5], coefficients_arousal_study2$Stand_Beta[1:5]),
-  Task = c(rep("Arousal (scripted speech)", 5), rep("Contentedness (free speech)", 5), rep("Arousal (free speech)", 5))#,
+  Target = c(rep("Arousal (scripted speech)", 5), rep("Contentedness (free speech)", 5), rep("Arousal (free speech)", 5))#,
   #Feature_Group = c("Frequency", "Spectral", ...)
 )
 
@@ -167,7 +167,7 @@ combined_df <- data.frame(
 all_combinations <- expand.grid(Feature = unique(combined_df$Feature), Task = unique(combined_df$Task))
 
 # Left join the original data with all combinations and replace NA with 0
-combined_df <- merge(all_combinations, combined_df, by = c("Feature", "Task"), all.x = TRUE) %>%
+combined_df <- merge(all_combinations, combined_df, by = c("Feature", "Target"), all.x = TRUE) %>%
   replace(is.na(.), 0)
 
 combined_df$Feature <- factor(combined_df$Feature, levels = unique(combined_df$Feature)) # convert feature to factor
@@ -184,29 +184,29 @@ combined_df$Feature <- factor(combined_df$Feature, levels = subset_feature_order
 task_levels <- c("Arousal (scripted speech)", "Arousal (free speech)", "Contentedness (free speech)")
 
 # Convert Task to a factor and set levels in the desired order
-combined_df$Task <- factor(combined_df$Task, levels = task_levels)
+combined_df$Target <- factor(combined_df$Target, levels = task_levels)
 
 # create the plot
 
 # connected dots
-betas_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, group = Task, color = Task)) +
+betas_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, group = Target, color = Target)) +
   geom_point() +
   geom_line() + # This will connect the dots in the order of factors
   coord_flip() +
-  theme_minimal() +
+  theme_minimal(base_size = 25) +
   labs(x = element_blank() ,y = "Standardized Beta Coefficient") +
-  theme(axis.text.x = element_text(angle = 65, hjust = 1), legend.position = "top") + # Rotate x labels for better readability
+  theme(axis.text.x = element_text(angle = -45, hjust = 0), legend.position = "top") + # Rotate x labels for better readability
   scale_color_manual(values = c("Arousal (free speech)" = "#1f78b4" ,
                                 "Arousal (scripted speech)" = "#a6cee3", 
                                 "Contentedness (free speech)" = "#b2df8a"))
 
 # grouped bar plot
-betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, fill = Task)) +
+betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, fill = Target)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.7) + # Use position_dodge to create grouped bars
   coord_flip() + # Flips the axes so that features are on the y-axis
   theme_minimal() +
   labs(y = "Standardized Beta Coefficient", x = element_blank()) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5), # Adjust text angle and position for readability
+  theme(axis.text.x = element_text(angle = -45, hjust = 0), # Adjust text angle and position for readability
          legend.position = "top") + # Positions the legend at the top
   scale_fill_manual(values = c("Arousal (free speech)" = "#1f78b4",
                                "Arousal (scripted speech)" = "#a6cee3", 
