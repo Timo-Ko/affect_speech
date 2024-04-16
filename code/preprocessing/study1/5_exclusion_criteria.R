@@ -1,10 +1,39 @@
-### FILTED DATA BASED ON AFFECT DATA 8USER LEVEL) ####
+#### COMBINE DATA OF SMARTPHONECHANGERS ####
 
 library(dplyr)
+library(tidyr)
 
-## read in data
+affect_voice_raw <- readRDS("data/study1/affect_voice_study1.rds") # load voice data
 
-affect_voice <- readRDS("data/study1/affect_voice_study1.rds")
+changers = read.csv2("data/study1/Smartphonewechsel_20210219.csv") # load smartphone changers
+
+## create unified if mapping
+
+id_mapping <- changers %>%
+  # Select relevant columns only 
+  select(NewId, p_0001_2, p_0001_3, p_0001_new) %>%
+  # Convert from wide to long format
+  pivot_longer(cols = starts_with("p_"),
+               values_to = "old_id", 
+               names_to = "variable") %>%
+  # Drop NAs since these don't map to any old_id
+  drop_na() %>%
+  # Select only the new ID and old ID columns
+  select(new_id = NewId, old_id) %>%
+  # Ensure all mappings are unique
+  distinct()
+
+## apply new id mapping
+
+affect_voice <- affect_voice_raw %>%
+  # Left join to add new_id where applicable
+  left_join(id_mapping, by = c("user_id" = "old_id")) %>%
+  # Replace old user_id with new_id where available
+  mutate(user_id = coalesce(new_id, user_id)) %>%
+  # Drop the temporary new_id column
+  select(-new_id)
+
+### FILTED DATA BASED ON AFFECT DATA USER LEVEL) ####
 
 ## remove participants with less than 10 experience sampling instances
 
@@ -111,6 +140,7 @@ affect_voice_cleaned  <- affect_voice %>%
 
 # save cleaned dfs
 saveRDS(affect_voice_cleaned, "data/study1/affect_voice_study1_cleaned.rds")
+
 
 ### DESCRIPTIVES OF FINAL DATA ####
 
