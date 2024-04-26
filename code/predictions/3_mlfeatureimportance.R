@@ -186,19 +186,26 @@ task_levels <- c("Arousal (scripted speech)", "Arousal (free speech)", "Contente
 # Convert Task to a factor and set levels in the desired order
 combined_df$Target <- factor(combined_df$Target, levels = task_levels)
 
+# reorder 
+
+# Reorder Feature based on the magnitude of Stand_Beta
+combined_df <- combined_df %>%
+  mutate(Feature = fct_reorder(Feature, Stand_Beta, .desc = TRUE))
+
+
 # create the plot
 
-# connected dots
-betas_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, group = Target, color = Target)) +
-  geom_point() +
-  geom_line() + # This will connect the dots in the order of factors
-  coord_flip() +
-  theme_minimal(base_size = 25) +
-  labs(x = element_blank() ,y = "Standardized Beta Coefficient") +
-  theme(axis.text.x = element_text(angle = -45, hjust = 0), legend.position = "top") + # Rotate x labels for better readability
-  scale_color_manual(values = c("Arousal (free speech)" = "#1f78b4" ,
-                                "Arousal (scripted speech)" = "#a6cee3", 
-                                "Contentedness (free speech)" = "#b2df8a"))
+# # connected dots
+# betas_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, group = Target, color = Target)) +
+#   geom_point() +
+#   geom_line() + # This will connect the dots in the order of factors
+#   coord_flip() +
+#   theme_minimal(base_size = 25) +
+#   labs(x = element_blank() ,y = "Standardized Beta Coefficient") +
+#   theme(axis.text.x = element_text(angle = -45, hjust = 0), legend.position = "top") + # Rotate x labels for better readability
+#   scale_color_manual(values = c("Arousal (free speech)" = "#1f78b4" ,
+#                                 "Arousal (scripted speech)" = "#a6cee3", 
+#                                 "Contentedness (free speech)" = "#b2df8a"))
 
 # grouped bar plot
 betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, fill = Target)) +
@@ -212,12 +219,13 @@ betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stan
                                "Arousal (scripted speech)" = "#a6cee3", 
                                "Contentedness (free speech)" = "#b2df8a"))
 
+
                   
 
 # save plot 
 png(file="figures/betas_plot.png",width=1500, height=1500)
 
-betas_plot 
+betas_grouped_bar_plot
 
 dev.off()
 
