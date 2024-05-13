@@ -73,6 +73,13 @@ affect_voice_cleaned_final <- affect_voice_cleaned %>%
   filter(VoicedSegmentsPerSec > 0) %>% # more than 0 voiced segments per second
   filter(MeanVoicedSegmentLengthSec > 0) # mean length of voice segments greater than zero
 
+# descriptives of removed files 
+excluded_data <- anti_join(affect_voice_cleaned, affect_voice_cleaned_final, by = "user_id")
+
+# Calculate the number of excluded rows and unique user_ids
+excluded_counts <- summarise(excluded_data, 
+                             files_excluded = n(),
+                             users_excluded = n_distinct(user_id))
 # save final df
 saveRDS(affect_voice_cleaned_final, "data/study2/affect_voice_study2_cleaned.rds")
 

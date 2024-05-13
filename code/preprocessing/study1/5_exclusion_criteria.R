@@ -33,6 +33,9 @@ affect_voice <- affect_voice_raw %>%
   # Drop the temporary new_id column
   select(-new_id)
 
+# save data
+saveRDS(affect_voice, "data/study1/affect_voice_changed.rds") # load voice data
+
 ### FILTED DATA BASED ON AFFECT DATA USER LEVEL) ####
 
 ## remove participants with less than 10 experience sampling instances
@@ -104,6 +107,13 @@ affect_voice_cleaned  <- affect_voice %>%
   dplyr::filter(VoicedSegmentsPerSec >0) %>%
   dplyr::filter(MeanVoicedSegmentLengthSec >0)
 
+# Finding user_ids that are excluded by the filter
+excluded_user_ids <- setdiff(affect_voice$user_id, affect_voice_cleaned$user_id)
+
+# details of excluded users
+excluded_users_details <- affect_voice %>%
+  filter(user_id %in% excluded_user_ids)
+
 # # investigate descriptives of instances without voice
 # 
 # length(unique(compare_feature_df_novoice$e_s_questionnaire_id)) # the no voice records come from 1908 ES instances
@@ -144,14 +154,38 @@ saveRDS(affect_voice_cleaned, "data/study1/affect_voice_study1_cleaned.rds")
 
 ### DESCRIPTIVES OF FINAL DATA ####
 
-# number of participants
+# number of participants total 
 length(unique(affect_voice_cleaned$user_id))
 
-# number of es
+# number of es total
 length(unique(affect_voice_cleaned$e_s_questionnaire_id))
 
-# number of audio logs
+# number of audio logs total
 dim(affect_voice_cleaned)
+
+# avg number of es and audio logs per participant 
+
+summary_stats <- affect_voice_cleaned %>%
+  # Create a summary for each user
+  group_by(user_id) %>%
+  # Summarize the number of unique es and count of audio logs
+  summarise(
+    num_es = n_distinct(e_s_questionnaire_id),
+    num_audio_logs = n()
+  ) %>%
+  # Ungroup to perform overall summary calculations
+  ungroup() %>%
+  # Calculate the overall summaries, including means and standard deviations
+  summarise(
+    num_participants = n(),  # Total number of participants
+    num_es_total = sum(num_es),  # Total number of es
+    num_audio_logs_total = sum(num_audio_logs),  # Total number of audio logs
+    avg_es_per_participant = mean(num_es),  # Average number of es per participant
+    sd_es_per_participant = sd(num_es),  # SD of es per participant
+    avg_audio_logs_per_participant = mean(num_audio_logs),  # Average number of audio logs per participant
+    sd_audio_logs_per_participant = sd(num_audio_logs)  # SD of audio logs per participant
+  )
+
 
 # distribution of raw valence and arousal ratings across es instances
 hist(affect_voice_cleaned$valence)

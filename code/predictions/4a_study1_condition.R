@@ -48,7 +48,6 @@ predictions_condition$condition <- as.factor(predictions_condition$condition)
 
 head(predictions_condition)
 
-# check overall error per semantic condition
 # no significant differences in mean error across conditions
 cond_error <- predictions_condition[,c("condition", "error_valence", "error_arousal")] %>% 
   group_by(condition) %>% 

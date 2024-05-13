@@ -164,33 +164,44 @@ combined_df <- data.frame(
 )
 
 # Create a complete set of all combinations of features and tasks
-all_combinations <- expand.grid(Feature = unique(combined_df$Feature), Task = unique(combined_df$Task))
+all_combinations <- expand.grid(Feature = unique(combined_df$Feature), Target = unique(combined_df$Target))
 
 # Left join the original data with all combinations and replace NA with 0
-combined_df <- merge(all_combinations, combined_df, by = c("Feature", "Target"), all.x = TRUE) %>%
+combined_df <- merge(all_combinations, combined_df, by = c("Feature", "Target"), all = TRUE) %>%
   replace(is.na(.), 0)
 
 combined_df$Feature <- factor(combined_df$Feature, levels = unique(combined_df$Feature)) # convert feature to factor
 
-full_feature_order <- colnames(affect_voice_study1)[14:101]
+#full_feature_order <- colnames(affect_voice_study1)[14:101]
 
-# Filter the full order to include only features present in 'combined_df'
-subset_feature_order <- full_feature_order[full_feature_order %in% combined_df$Feature]
+# # Filter the full order to include only features present in 'combined_df'
+# subset_feature_order <- full_feature_order[full_feature_order %in% combined_df$Feature]
+# 
+# # Reorder the 'Feature' factor levels in 'combined_df' according to 'subset_feature_order'
+# combined_df$Feature <- factor(combined_df$Feature, levels = subset_feature_order)
 
-# Reorder the 'Feature' factor levels in 'combined_df' according to 'subset_feature_order'
-combined_df$Feature <- factor(combined_df$Feature, levels = subset_feature_order)
+feature_order <- combined_df %>%
+  group_by(Feature) %>%
+  summarise(max_signed_beta = if_else(max(Stand_Beta) > abs(min(Stand_Beta)), max(Stand_Beta), min(Stand_Beta))) %>%  # Max with sign retention
+  arrange(desc(max_signed_beta))
 
-# Set the desired order for your tasks
+# # Reorder Feature based on the absolute magnitude of Stand_Beta in descending order
+# combined_df <- combined_df %>%
+#   dplyr::mutate(Feature = fct_reorder(Feature, Stand_Beta, .desc = TRUE))
+
+# # Set the desired order for your tasks
+# task_levels <- c("Arousal (scripted speech)", "Arousal (free speech)", "Contentedness (free speech)")
+# 
+# # Convert Task to a factor and set levels in the desired order
+# combined_df$Target <- factor(combined_df$Target, levels = task_levels)
+
+# Join feature order back to the combined_df to ensure consistent feature ordering
+combined_df <- left_join(combined_df, feature_order, by = "Feature")
+combined_df$Feature <- factor(combined_df$Feature, levels = feature_order$Feature)
+
+# Set the desired order for your targets
 task_levels <- c("Arousal (scripted speech)", "Arousal (free speech)", "Contentedness (free speech)")
-
-# Convert Task to a factor and set levels in the desired order
 combined_df$Target <- factor(combined_df$Target, levels = task_levels)
-
-# reorder 
-
-# Reorder Feature based on the magnitude of Stand_Beta
-combined_df <- combined_df %>%
-  mutate(Feature = fct_reorder(Feature, Stand_Beta, .desc = TRUE))
 
 
 # create the plot
@@ -211,7 +222,7 @@ combined_df <- combined_df %>%
 betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, fill = Target)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.7) + # Use position_dodge to create grouped bars
   coord_flip() + # Flips the axes so that features are on the y-axis
-  theme_minimal() +
+  theme_minimal(base_size = 25) +
   labs(y = "Standardized Beta Coefficient", x = element_blank()) +
   theme(axis.text.x = element_text(angle = -45, hjust = 0), # Adjust text angle and position for readability
          legend.position = "top") + # Positions the legend at the top
@@ -219,8 +230,6 @@ betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stan
                                "Arousal (scripted speech)" = "#a6cee3", 
                                "Contentedness (free speech)" = "#b2df8a"))
 
-
-                  
 
 # save plot 
 png(file="figures/betas_plot.png",width=1500, height=1500)
