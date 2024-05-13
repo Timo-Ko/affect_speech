@@ -570,7 +570,11 @@ bmr_egemaps_gender_study2 <- readRDS("results/study2/bmr_gender_study2.rds")
 
 ## view aggregated performance 
 
-mes = c(msr("regr.srho"), msr("regr.rsq"), msr("regr.rmse"))
+## modify rho to handle NAs
+m_rho = msr("regr.srho")
+m_rho$aggregator = function(x) mean(x, na.rm = TRUE)
+
+mes = c(m_rho, msr("regr.rsq"), msr("regr.mae"), msr("regr.rmse"))
 
 # study 1
 
