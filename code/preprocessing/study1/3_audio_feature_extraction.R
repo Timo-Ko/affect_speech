@@ -157,8 +157,8 @@ saveRDS(compare_feature_df, "data/study1/compare_feature_df.rds")
 
 ## match w corresponding user ids
 
-egemaps_feature_df_all <- merge(egemaps_feature_df , na.omit(al_es[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
-compare_feature_df_all <- merge(compare_feature_df , na.omit(al_es[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
+egemaps_feature_df_all <- left_join(egemaps_feature_df , al_es[, c("questionnaireStartedTimestamp", "id", "user_id")], by ="id")
+compare_feature_df_all <- left_join(compare_feature_df , al_es[, c("questionnaireStartedTimestamp", "id", "user_id")], by ="id")
 
 # remove unneeded and reorder columns
 egemaps_feature_df_all  <- egemaps_feature_df_all  %>% 

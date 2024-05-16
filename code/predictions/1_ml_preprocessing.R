@@ -34,7 +34,7 @@ no_feature_columns_study2 = c("user_id", "timestamp",
 
 # study1
 
-affect_voice_study1_ml <- affect_voice_study1
+affect_voice_study1_ml <- affect_voice_study1 # copy data frame
 
 affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1_ml) == "equivalentSoundLevel_dBp")] <-
 target_independent_preproc(affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1_ml) == "equivalentSoundLevel_dBp")], no_feature_columns_study1) # egemaps features
@@ -44,7 +44,7 @@ affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "audspec_leng
 
 # study2
 
-affect_voice_wordembeddings_study2_ml <- affect_voice_wordembeddings_study2
+affect_voice_wordembeddings_study2_ml <- affect_voice_wordembeddings_study2 # copy data frame
 
 affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "equivalentSoundLevel_dBp")] <-
   target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "equivalentSoundLevel_dBp")], no_feature_columns_study2) # egemaps features
