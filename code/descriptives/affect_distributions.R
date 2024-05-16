@@ -3,56 +3,56 @@
 ## Study 1
 
 # load data
+affect_voice_study1 <- readRDS(file="data/study1/affect_voice_study1_cleaned.rds") 
 
 # create histograms
 
-hist_valence <- ggplot(affect_acoustics, aes(x=sad)) + 
+hist_valence_study1 <- ggplot(affect_voice_study1, aes(x=valence)) + 
   geom_histogram() + 
   scale_y_continuous(name = element_blank(), limits = c(0,10000))+ 
-  scale_x_continuous(name = "Sadness", breaks = c(0:3)) + 
+  scale_x_continuous(name = "Valence (Study 1)", breaks = c(1:6)) + 
   theme_minimal(base_size = 20)
 
-hist_arousal_study1 <- ggplot(affect_acoustics, aes(x=arousal)) + 
+hist_arousal_study1 <- ggplot(affect_voice_study1, aes(x=arousal)) + 
   geom_histogram() + 
   scale_y_continuous(name = element_blank(), limits = c(0,10000))+ 
-  scale_x_continuous(name = "Arousal", breaks = c(0:4)) + 
+  scale_x_continuous(name = "Arousal (Study 1)", breaks = c(1:6)) + 
   theme_minimal(base_size = 20)
-
 
 ## Study 2
 
 # load data
+affect_voice_wordembeddings_study2 <- readRDS(file="data/study2/affect_voice_wordembeddings.rds") 
 
 # create histograms 
 
-hist_content <- ggplot(affect_acoustics, aes(x=content)) + 
+hist_content_study2 <- ggplot(affect_voice_wordembeddings_study2, aes(x=content)) + 
   geom_histogram() + 
   scale_y_continuous(name = element_blank(), limits = c(0,10000))+ 
-  scale_x_continuous(name = "Contentedness", breaks = c(0:3)) + 
+  scale_x_continuous(name = "Contentedness (Study 2)", breaks = c(0:3)) + 
   theme_minimal(base_size = 20)
 
-hist_sad <- ggplot(affect_acoustics, aes(x=sad)) + 
+hist_sad_study2 <- ggplot(affect_voice_wordembeddings_study2, aes(x=sad)) + 
   geom_histogram() + 
   scale_y_continuous(name = element_blank(), limits = c(0,10000))+ 
-  scale_x_continuous(name = "Sadness", breaks = c(0:3)) + 
+  scale_x_continuous(name = "Sadness (Study 2)", breaks = c(0:3)) + 
   theme_minimal(base_size = 20)
 
-hist_arousal_study2 <- ggplot(affect_acoustics, aes(x=arousal)) + 
+hist_arousal_study2 <- ggplot(affect_voice_wordembeddings_study2, aes(x=arousal)) + 
   geom_histogram() + 
   scale_y_continuous(name = element_blank(), limits = c(0,10000))+ 
-  scale_x_continuous(name = "Arousal", breaks = c(0:4)) + 
+  scale_x_continuous(name = "Arousal (Study 2)", breaks = c(0:4)) + 
   theme_minimal(base_size = 20)
 
-# arrange histograms (2x2 matrix)
+# arrange histograms (2x3 matrix)
 
 affect_dist <- 
-  (hist_content + hist_diff_content) /
-  (hist_sad + hist_diff_sad) /
-  (hist_arousal + hist_diff_arousal)
+  (hist_valence_study1 + hist_arousal_study1) /
+  (hist_content_study2 + hist_sad_study2 + hist_arousal_study2 )
 
 # save figure
-png(file="figures/us_affect_dist_overview.png",width=1000, height=1500)
-affect_dist_voice
+png(file="figures/affect_dist_overview.png",width=1000, height=1000)
+affect_dist
 dev.off()
 
 ## FINISH
