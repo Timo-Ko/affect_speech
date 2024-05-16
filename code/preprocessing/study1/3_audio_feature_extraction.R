@@ -139,8 +139,8 @@ if (length(egemaps_values) == 0) {
 # paste values in data frame 
 
 # paste into df
-egemaps_feature_df[egemaps_feature_df$id==id, c(3:(ncol(egemaps_feature_df)-1))] <- egemaps_values
-compare_feature_df[compare_feature_df$id==id, c(3:(ncol(compare_feature_df)-1))] <- compare_values
+egemaps_feature_df[egemaps_feature_df$id==id, c(3:(ncol(egemaps_feature_df)))] <- egemaps_values
+compare_feature_df[compare_feature_df$id==id, c(3:(ncol(compare_feature_df)))] <- compare_values
 
 rm(egemaps_values)
 rm(compare_values)
@@ -157,8 +157,8 @@ saveRDS(compare_feature_df, "data/study1/compare_feature_df.rds")
 
 ## match w corresponding user ids
 
-egemaps_feature_df_all <- merge(egemaps_feature_df , na.omit(ps_esquestionnaire[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
-compare_feature_df_all <- merge(compare_feature_df , na.omit(ps_esquestionnaire[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
+egemaps_feature_df_all <- merge(egemaps_feature_df , na.omit(al_es[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
+compare_feature_df_all <- merge(compare_feature_df , na.omit(al_es[, c("questionnaireStartedTimestamp", "id", "user_id")]), by.x ="e_s_questionnaire_id", by.y ="id")
 
 # remove unneeded and reorder columns
 egemaps_feature_df_all  <- egemaps_feature_df_all  %>% 

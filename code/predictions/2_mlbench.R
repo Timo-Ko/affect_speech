@@ -360,10 +360,8 @@ egemaps_wordembeddings_arousal$col_roles$feature = setdiff(egemaps_wordembedding
 
 lrn_fl = lrn("regr.featureless")
 lrn_rf = lrn("regr.ranger", 
-             #mtry = to_tune(1, round(length(egemaps_age_study1$col_roles$feature)*0.7)),
              num.trees =1000) # random forest
 lrn_rr = lrn("regr.cv_glmnet"#,
-             #alpha= to_tune(0,1)
              ) # lasso
 
 # enable parallelization
@@ -371,31 +369,7 @@ set_threads(lrn_fl, n = 5)
 set_threads(lrn_rr, n = 5)
 set_threads(lrn_rf, n = 5)
 
-#### HYPERPARAMETER TUNING ####
-
-# this can be added later if desired
-
-# at_rf = AutoTuner$new(
-#   learner = lrn_rf,
-#   resampling = rsmp("cv", folds = 5),
-#   measure = msr("regr.mse"),
-#   terminator = trm("evals", n_evals = 20),
-#   tuner = tnr("random_search"),
-#   store_models = TRUE
-# )
-# # 
-# at_rr = AutoTuner$new(
-#   learner = lrn_rr,
-#   resampling = rsmp("cv", folds = 5),
-#   measure = msr("regr.mse"),
-#   terminator = trm("evals", n_evals = 20),
-#   tuner = tnr("random_search"),
-#   store_models = TRUE
-# )
-
 ### PREPROCESSING IN CV ####
-
-po_scale = po("scale") # scaling features
 
 po_impute_hist = po("imputehist") # hist imputation
 po_impute_oor = po("imputeoor") # out of range imputation
@@ -570,7 +544,7 @@ bmr_egemaps_gender_study2 <- readRDS("results/study2/bmr_gender_study2.rds")
 
 ## view aggregated performance 
 
-## modify rho to handle NAs
+## modify rho measure to handle NAs
 m_rho = msr("regr.srho")
 m_rho$aggregator = function(x) mean(x, na.rm = TRUE)
 
@@ -603,9 +577,9 @@ bmr_results_folds_egemaps_study2 <- bmr_results_folds_egemaps_study2 %>% filter(
 
 bmr_results_folds_egemaps_wordembeddings_study2 <- extract_bmr_results(bmr_wordembeddings_study2, mes)
 
-bmr_results_folds_wordembeddings_study2 <- bmr_results_folds_egemaps_wordembeddings_study2 %>% filter(task_id %in% c("wordembeddings_content", "wordembeddings_sad", "wordembeddings_arousal"))
+bmr_results_folds_wordembeddings_study2 <- bmr_results_folds_egemaps_wordembeddings_study2 %>% filter(task_id %in% c("wordembeddings_content", "wordembeddings_sad", "wordembeddings_arousal")) # only keep relevant main tasks 
 
-bmr_results_folds_egemaps_wordembeddings_study2 <- bmr_results_folds_egemaps_wordembeddings_study2 %>% filter(task_id %in% c("egemaps_wordembeddings_content", "egemaps_wordembeddings_sad", "egemaps_wordembeddings_arousal"))
+bmr_results_folds_egemaps_wordembeddings_study2 <- bmr_results_folds_egemaps_wordembeddings_study2 %>% filter(task_id %in% c("egemaps_wordembeddings_content", "egemaps_wordembeddings_sad", "egemaps_wordembeddings_arousal")) # only keep relevant main tasks 
 
 ## create combined overview table of performance incl. significance tests
 pred_table_egemaps_study1 <- results_table(affect_voice_study1, bmr_results_folds_egemaps_study1)
@@ -614,18 +588,12 @@ pred_table_egemaps_study2 <- results_table(affect_voice_wordembeddings_study2, b
 pred_table_wordembeddings_study2 <- results_table(affect_voice_wordembeddings_study2, bmr_results_folds_wordembeddings_study2)
 pred_table_egemaps_wordembeddings_study2 <- results_table(affect_voice_wordembeddings_study2, bmr_results_folds_egemaps_wordembeddings_study2)
 
-# add column with p values
-bmr_results_folds_egemaps_study1 <- dplyr::left_join(bmr_results_folds_egemaps_study1, pred_table_egemaps_study1[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
-
-bmr_results_folds_egemaps_study2 <- dplyr::left_join(bmr_results_folds_egemaps_study2, pred_table_egemaps_study2[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
-bmr_results_folds_wordembeddings_study2 <- dplyr::left_join(bmr_results_folds_wordembeddings_study2, pred_table_wordembeddings_study2[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
-bmr_results_folds_egemaps_wordembeddings_study2 <- dplyr::left_join(bmr_results_folds_egemaps_wordembeddings_study2, pred_table_egemaps_wordembeddings_study2[,c("task_id", "learner_id", "p_rsq", "p_rsq_corrected")], by = c("task_id", "learner_id"))
+# rbind into one results table
+# save prediction table
+write.csv2(pred_table_egemaps_study1, "results/pred_table_egemaps_study1.csv")
 
 # rbind results from study 2
 bmr_results_folds_study2 <- rbind(bmr_results_folds_egemaps_study2, bmr_results_folds_wordembeddings_study2, bmr_results_folds_egemaps_wordembeddings_study2)
-
-# create significance column
-#bmr_results_folds$significance <- as.factor(ifelse(bmr_results_folds$p_rsq_corrected >= 0.05 | is.na(bmr_results_folds$p_rsq_corrected), "no", "yes"))
 
 # rename
 

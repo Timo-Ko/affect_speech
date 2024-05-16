@@ -8,9 +8,41 @@ lapply(packages, library, character.only = TRUE)
 bmr_egemaps <- readRDS("results/study1/bmr_egemaps_study1.rds")
 
 # load data
-affect_egemaps <- readRDS("data/study1/affect_voice_study1.rds")
+affect_voice_study1 <- readRDS("data/study1/affect_voice_study1.rds")
 
-####  SEMANTIC EFFECTS: VALENCE ####
+# remove illegal characters from colnames 
+colnames(affect_voice_study1) <- make.names(colnames(affect_voice_study1), unique = TRUE)
+
+####  DESCRIPTIVE DIFFERENCES IN VOICE FEATURES AMONG SENTENCE CONDITION ####
+
+egemaps_features <- colnames(affect_voice_study1)[which(colnames(affect_voice_study1) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1) == "equivalentSoundLevel_dBp")]
+
+# Calculate the average values for each feature across the three conditions
+avg_values_condition <- affect_voice_study1 %>%
+  select(condition, all_of(egemaps_features)) %>%
+  group_by(condition) %>%
+  summarize(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = -condition, names_to = "feature", values_to = "value") %>%
+  pivot_wider(names_from = condition, values_from = value)
+
+# # Function to perform ANOVA and get p-value
+# get_anova_p_value <- function(feature) {
+#   formula <- as.formula(paste(feature, "~ condition"))
+#   model <- aov(formula, data = affect_voice_study1)
+#   tidy(model)$p.value[1] # Extract the p-value for the condition effect
+# }
+# 
+# # Add a column for ANOVA significance
+# avg_values_condition <- avg_values_condition %>%
+#   rowwise() %>%
+#   mutate(p_value = get_anova_p_value(feature),
+#          significant = p_value < 0.05) %>%
+#   ungroup()
+
+# save results 
+write.csv(avg_values_condition, "results/avg_values_condition_study1.csv")
+
+####  CONTENT SENTIMENT EFFECTS ON VOICE PREDICTIONS ####
 
 ## create plot showing the prediction error on y axis and valence/ arousal score on x-axis with 3 curves (sentence conditions separate and all together)
 

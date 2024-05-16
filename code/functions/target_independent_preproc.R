@@ -11,11 +11,11 @@ target_independent_preproc <- function(data, no_feature_columns){
   data[, which(!colnames(data) %in% no_feature_columns)] = apply(data[, which(!colnames(data) %in% no_feature_columns)], 2, 
                                                                  function(x) ifelse(x > (mean(x, na.rm = TRUE)+4*sd(x, na.rm = TRUE)) | x < (mean(x, na.rm = TRUE)-4*sd(x, na.rm = TRUE)), NA, x))
   
-  ## exclude features with more than 90% missing values
-  na_count = sapply(data[, which(!colnames(data) %in% no_feature_columns)], function(y) sum(length(which(is.na(y)))))
-  exclude_na.90Perc = colnames(data[, which(!colnames(data) %in% no_feature_columns)])[which(na_count > nrow(data)*0.90)] 
-  length(exclude_na.90Perc)
-  data = data %>% dplyr::select(-all_of(exclude_na.90Perc))
+  # ## exclude features with more than 90% missing values
+  # na_count = sapply(data[, which(!colnames(data) %in% no_feature_columns)], function(y) sum(length(which(is.na(y)))))
+  # exclude_na.90Perc = colnames(data[, which(!colnames(data) %in% no_feature_columns)])[which(na_count > nrow(data)*0.90)] 
+  # length(exclude_na.90Perc)
+  # data = data %>% dplyr::select(-all_of(exclude_na.90Perc))
   
   ## exclude features with zero or near-zero (< 5%) variance 
   exclude_zero.var = nearZeroVar(data[, which(!colnames(data) %in% no_feature_columns)], freqCut = 95/5, uniqueCut = 10, saveMetrics = FALSE, allowParallel = TRUE)
