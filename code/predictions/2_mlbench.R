@@ -224,29 +224,6 @@ wordembeddings_arousal = TaskRegr$new(id = "wordembeddings_arousal",
                                                                                       which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
                                       target = "arousal")
 
-# supplementary analyses
-
-# content fluctuation from baseline
-wordembeddings_content_diff = TaskRegr$new(id = "wordembeddings_content_diff", 
-                                           backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                           which(colnames(affect_voice_wordembeddings_study2)=="diff_content"), 
-                                                                                           which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                           target = "diff_content")
-
-# sad fluctuation from baseline
-wordembeddings_sad_diff = TaskRegr$new(id = "wordembeddings_sad_diff", 
-                                       backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                       which(colnames(affect_voice_wordembeddings_study2)=="diff_sad"), 
-                                                                                       which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                       target = "diff_sad")
-
-# arousal fluctuation from baseline
-wordembeddings_arousal_diff = TaskRegr$new(id = "wordembeddings_arousal_diff", 
-                                           backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                           which(colnames(affect_voice_wordembeddings_study2)=="diff_arousal"), 
-                                                                                           which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                           target = "diff_arousal")
-
 
 ## egemaps + word embeddings 
 
@@ -330,18 +307,6 @@ wordembeddings_sad$col_roles$feature = setdiff(wordembeddings_sad$col_roles$feat
 wordembeddings_arousal$col_roles$group = "user_id"
 wordembeddings_arousal$col_roles$feature = setdiff(wordembeddings_arousal$col_roles$feature, "user_id")
 
-# content difference from baseline
-wordembeddings_content_diff$col_roles$group = "user_id"
-wordembeddings_content_diff$col_roles$feature = setdiff(wordembeddings_content_diff$col_roles$feature, "user_id")
-
-# sad difference from baseline
-wordembeddings_sad_diff$col_roles$group = "user_id"
-wordembeddings_sad_diff$col_roles$feature = setdiff(wordembeddings_sad_diff$col_roles$feature, "user_id")
-
-# arousal difference from baseline
-wordembeddings_arousal_diff$col_roles$group = "user_id"
-wordembeddings_arousal_diff$col_roles$feature = setdiff(wordembeddings_arousal_diff$col_roles$feature, "user_id")
-
 # egemaps + word embeddings 
 
 # raw content 
@@ -394,11 +359,13 @@ progressr::handlers("progress")
 
 ## momentary affect experience
 
-bmgrid_egemaps_study1 = benchmark_grid(
+bmgrid_study1 = benchmark_grid(
   task = c(egemaps_valence_study1,
            egemaps_arousal_study1,
-           egemaps_valence_diff_study1, # supplementary analyses 
-           egemaps_arousal_diff_study1
+           egemaps_valence_diff_study1, # supplementary analyses: affect fluctuation
+           egemaps_arousal_diff_study1,
+           compare_valence_study1, # supplementary analyses: compare2016 feature set
+           compare_arousal_study1
   ),
   learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
@@ -406,24 +373,9 @@ bmgrid_egemaps_study1 = benchmark_grid(
 
 future::plan("multisession", workers = 5) # enable parallelization
 
-bmr_egemaps_study1 = benchmark(bmgrid_egemaps_study1, store_models = F, store_backends = F) # execute the benchmark
+bmr_study1 = benchmark(bmgrid_study1, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_egemaps_study1, "results/study1/bmr_egemaps_study1.rds") # save results
-
-## supplementary analysis: compare feature set
-
-bmgrid_compare = benchmark_grid(
-  task = c(compare_valence, 
-           compare_arousal),
-  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
-  resampling = resampling
-)
-
-future::plan("multisession", workers = 5) # enable parallelization
-
-bmr_compare_study1 = benchmark(bmgrid_compare_study1, store_models = F, store_backends = F) # execute the benchmark
-
-saveRDS(bmr_compare_study1, "results/study1/bmr_compare_study1.rds") # save results
+saveRDS(bmr_study1, "results/study1/bmr_study1.rds") # save results
 
 # supplementary prediction: gender
 
@@ -455,13 +407,22 @@ progressr::handlers("progress")
 
 ## momentary affect experience
 
-bmgrid_egemaps_study2 = benchmark_grid(
+bmgrid_study2 = benchmark_grid(
   task = c(egemaps_arousal_study2,
            egemaps_content_study2,
            egemaps_sad_study2, 
-           egemaps_arousal_diff_study2,  # supplementary analyses
+           egemaps_arousal_diff_study2,  # supplementary analyses: affect fluctuation
            egemaps_content_diff_study2,
-           egemaps_sad_diff_study2 
+           egemaps_sad_diff_study2,
+           compare_arousal_study2, # supplementary analyses: compare2016 feature set
+           compare_content_study2,
+           compare_sad_study2,
+           wordembeddings_arousal, # wordembeddings only
+           wordembeddings_content,
+           wordembeddings_sad, 
+           egemaps_wordembeddings_arousal, # wordembeddings and voice combined
+           egemaps_wordembeddings_content,
+           egemaps_wordembeddings_sad
            ),
   learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = resampling
@@ -469,48 +430,10 @@ bmgrid_egemaps_study2 = benchmark_grid(
 
 future::plan("multisession", workers = 5) # enable parallelization
 
-bmr_egemaps_study2 = benchmark(bmgrid_egemaps_study2, store_models = F, store_backends = F) # execute the benchmark
+bmr_study2 = benchmark(bmgrid_study2, store_models = F, store_backends = F) # execute the benchmark
 
-saveRDS(bmr_egemaps_study2, "results/study2/bmr_egemaps_study2.rds") # save results
+saveRDS(bmr_study2, "results/study2/bmr_study2.rds") # save results
 
-## supplementary analysis: compare feature set
-
-bmgrid_compare_study2 = benchmark_grid(
-  task = c(compare_arousal_study2,
-           compare_content_study2,
-           compare_sad_study2),
-  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
-  resampling = resampling
-)
-
-future::plan("multisession", workers = 5) # enable parallelization
-
-bmr_compare_study2 = benchmark(bmgrid_compare_study2, store_models = F, store_backends = F) # execute the benchmark
-
-saveRDS(bmr_compare_study2, "results/study2/bmr_compare_study2.rds") # save results
-
-# word embeddings and egemaps + word embeddings
-
-bmgrid_wordembeddings = benchmark_grid(
-  task = c(wordembeddings_arousal,
-           wordembeddings_content,
-           wordembeddings_sad, 
-           egemaps_wordembeddings_arousal,
-           egemaps_wordembeddings_content,
-           egemaps_wordembeddings_sad,
-           wordembeddings_arousal_diff, # supplementary analyses
-           wordembeddings_content_diff,
-           wordembeddings_sad_diff
-  ),
-  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
-  resampling = resampling
-)
-
-future::plan("multisession", workers = 5) # enable parallelization
-
-bmr_wordembeddings_study2 = benchmark(bmgrid_wordembeddings, store_models = F, store_backends = F) # execute the benchmark
-
-saveRDS(bmr_wordembeddings_study2, "results/study2/bmr_wordembeddings_study2.rds") # save results
 
 ## supplementary prediction: gender
 bmgrid_egemaps_gender_study2 = benchmark_grid(
@@ -530,15 +453,12 @@ saveRDS(bmr_egemaps_gender_study2, "results/study2/bmr_egemaps_gender_study2.rds
 ## read in benchmark results
 
 # study 1
-bmr_egemaps_study1 <- readRDS("results/study1/bmr_egemaps_study1.rds")
-bmr_compare_study1 <- readRDS("results/study1/bmr_compare_study1.rds")
+bmr_study1 <- readRDS("results/study1/bmr_study1.rds")
 
 bmr_egemaps_gender_study1 <- readRDS("results/study1/bmr_egemaps_gender_study1.rds")
 
 # study 2
-bmr_egemaps_study2 <- readRDS("results/study2/bmr_egemaps_study2.rds")
-bmr_compare_study2 <- readRDS("results/study2/bmr_compare_study2.rds")
-bmr_wordembeddings_study2 <- readRDS("results/study2/bmr_wordembeddings_study2.rds")
+bmr_study2 <- readRDS("results/study2/bmr_study2.rds")
 
 bmr_egemaps_gender_study2 <- readRDS("results/study2/bmr_gender_study2.rds")
 
@@ -553,6 +473,7 @@ mes = c(m_rho, msr("regr.rsq"), msr("regr.mae"), msr("regr.rmse"))
 # study 1
 
 bmr_egemaps_study1$aggregate(mes)
+bmr_compare_study1$aggregate(mes)
 
 bmr_egemaps_gender_study1$aggregate(msr("classif.acc"))
 
