@@ -460,7 +460,7 @@ bmr_egemaps_gender_study1 <- readRDS("results/study1/bmr_egemaps_gender_study1.r
 # study 2
 bmr_study2 <- readRDS("results/study2/bmr_study2.rds")
 
-bmr_egemaps_gender_study2 <- readRDS("results/study2/bmr_gender_study2.rds")
+bmr_egemaps_gender_study2 <- readRDS("results/study2/bmr_egemaps_gender_study2.rds")
 
 ## view aggregated performance 
 
@@ -472,49 +472,37 @@ mes = c(m_rho, msr("regr.rsq"), msr("regr.mae"), msr("regr.rmse"))
 
 # study 1
 
-bmr_egemaps_study1$aggregate(mes)
-bmr_compare_study1$aggregate(mes)
+bmr_study1$aggregate(mes)
 
 bmr_egemaps_gender_study1$aggregate(msr("classif.acc"))
 
 # study 2
-bmr_egemaps_study2$aggregate(mes)
-bmr_wordembeddings_study2$aggregate(mes)
+bmr_study2$aggregate(mes)
 
 bmr_egemaps_gender_study2$aggregate(msr("classif.acc"))
 
 ## deep dive: retrieve benchmark results across tasks and learners for single cv folds (this is needed for barplots)
 
 # study 1
-bmr_results_folds_egemaps_study1 <- extract_bmr_results(bmr_egemaps_study1, mes)
+bmr_results_folds_study1 <- extract_bmr_results(bmr_study1, mes)
 
-bmr_results_folds_egemaps_study1 <- bmr_results_folds_egemaps_study1 %>% filter(task_id %in% c("egemaps_valence", "egemaps_arousal")) # only keep relevant main tasks 
+bmr_results_folds_egemaps_study1 <- bmr_results_folds_study1 %>% filter(task_id %in% c("egemaps_valence", "egemaps_arousal")) # only keep relevant main tasks 
 
 # study 2
-bmr_results_folds_egemaps_study2 <- extract_bmr_results(bmr_egemaps_study2, mes)
+bmr_results_folds_study2 <- extract_bmr_results(bmr_study2, mes)
 
-bmr_results_folds_egemaps_study2 <- bmr_results_folds_egemaps_study2 %>% filter(task_id %in% c("egemaps_content", "egemaps_sad", "egemaps_arousal"))  # only keep relevant main tasks 
-
-
-bmr_results_folds_egemaps_wordembeddings_study2 <- extract_bmr_results(bmr_wordembeddings_study2, mes)
-
-bmr_results_folds_wordembeddings_study2 <- bmr_results_folds_egemaps_wordembeddings_study2 %>% filter(task_id %in% c("wordembeddings_content", "wordembeddings_sad", "wordembeddings_arousal")) # only keep relevant main tasks 
-
-bmr_results_folds_egemaps_wordembeddings_study2 <- bmr_results_folds_egemaps_wordembeddings_study2 %>% filter(task_id %in% c("egemaps_wordembeddings_content", "egemaps_wordembeddings_sad", "egemaps_wordembeddings_arousal")) # only keep relevant main tasks 
+bmr_results_folds_egemaps_wordembeddings_study2 <- bmr_results_folds_study2 %>% filter(task_id %in% c("egemaps_content", "egemaps_sad", "egemaps_arousal",
+                                                                                       "wordembeddings_content", "wordembeddings_sad", "wordembeddings_arousal",
+                                                                                       "egemaps_wordembeddings_content", "egemaps_wordembeddings_sad", "egemaps_wordembeddings_arousal"))  # only keep relevant main tasks 
 
 ## create combined overview table of performance incl. significance tests
 pred_table_egemaps_study1 <- results_table(affect_voice_study1, bmr_results_folds_egemaps_study1)
 
-pred_table_egemaps_study2 <- results_table(affect_voice_wordembeddings_study2, bmr_results_folds_egemaps_study2)
-pred_table_wordembeddings_study2 <- results_table(affect_voice_wordembeddings_study2, bmr_results_folds_wordembeddings_study2)
 pred_table_egemaps_wordembeddings_study2 <- results_table(affect_voice_wordembeddings_study2, bmr_results_folds_egemaps_wordembeddings_study2)
 
-# rbind into one results table
-# save prediction table
+# save prediction tables
 write.csv2(pred_table_egemaps_study1, "results/pred_table_egemaps_study1.csv")
-
-# rbind results from study 2
-bmr_results_folds_study2 <- rbind(bmr_results_folds_egemaps_study2, bmr_results_folds_wordembeddings_study2, bmr_results_folds_egemaps_wordembeddings_study2)
+write.csv2(pred_table_egemaps_study1, "results/pred_table_egemaps_study1.csv")
 
 # rename
 
