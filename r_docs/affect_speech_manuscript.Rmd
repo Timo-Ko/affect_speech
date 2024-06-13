@@ -1,5 +1,5 @@
 ---
-title             : "Semantic content, not speech prosody, predicts momentary subjective affect experience"
+title             : "Semantic content outperforms speech prosody in predicting momentary subjective affect experience"
 shorttitle        : "Subjective Affect Experience in Speech"
 
 author: 
