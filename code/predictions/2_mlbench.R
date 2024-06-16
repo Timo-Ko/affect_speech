@@ -329,11 +329,6 @@ lrn_rf = lrn("regr.ranger",
 lrn_rr = lrn("regr.cv_glmnet"#,
              ) # lasso
 
-# enable parallelization
-set_threads(lrn_fl, n = 5)
-set_threads(lrn_rr, n = 5)
-set_threads(lrn_rf, n = 5)
-
 ### PREPROCESSING IN CV ####
 
 po_impute_hist = po("imputehist") # hist imputation
@@ -345,7 +340,136 @@ lrn_rr_po =  po_impute_hist  %>>% lrn_rr
 
 #### RESAMPLING ####
 
-resampling = rsmp("repeated_cv", repeats = 5, folds = 10)
+# repeated cv
+
+# create function for cv folds
+create_repeated_cv_resampling = function(n_rows, n_folds, n_repeats) {
+  results = list(train_sets = list(), test_sets = list())
+  
+  for (repeat_index in 1:n_repeats) {
+    # Shuffle indices
+    shuffled_indices = sample(n_rows)
+    
+    # Determine fold sizes accounting for remainder
+    fold_sizes = rep(n_rows %/% n_folds, n_folds)
+    fold_sizes[1:(n_rows %% n_folds)] = fold_sizes[1:(n_rows %% n_folds)] + 1
+    
+    # Create fold assignments
+    folds = split(shuffled_indices, rep(1:n_folds, fold_sizes))
+    
+    # Create training and testing sets for each fold
+    for (fold_index in seq_along(folds)) {
+      test_indices = folds[[fold_index]]
+      train_indices = unlist(folds[-fold_index], use.names = FALSE)
+      
+      results$train_sets[[length(results$train_sets) + 1]] = train_indices
+      results$test_sets[[length(results$test_sets) + 1]] = test_indices
+    }
+  }
+  
+  return(results)
+}
+
+# study 1
+
+cv_sets_study1 = create_repeated_cv_resampling(nrow(affect_voice_study1), 10, 5)
+train_sets_study1 = cv_sets_study1$train_sets
+test_sets_study1 = cv_sets_study1$test_sets
+
+# Create resampling objects
+custom_cv = rsmp("custom")
+
+res_egemaps_valence_study1 = custom_cv$clone()
+res_egemaps_valence_study1$instantiate(egemaps_valence_study1, train_sets_study1, test_sets_study1)
+
+res_egemaps_arousal_study1 = custom_cv$clone()
+res_egemaps_arousal_study1$instantiate(egemaps_arousal_study1, train_sets_study1, test_sets_study1)
+
+res_egemaps_valence_diff_study1 = custom_cv$clone()
+res_egemaps_valence_diff_study1$instantiate(egemaps_valence_diff_study1, train_sets_study1, test_sets_study1)
+
+res_egemaps_arousal_diff_study1 = custom_cv$clone()
+res_egemaps_arousal_diff_study1$instantiate(egemaps_arousal_diff_study1, train_sets_study1, test_sets_study1)
+
+res_compare_valence_study1 = custom_cv$clone()
+res_compare_valence_study1$instantiate(compare_valence_study1, train_sets_study1, test_sets_study1)
+
+res_compare_arousal_study1 = custom_cv$clone()
+res_compare_arousal_study1$instantiate(compare_arousal_study1, train_sets_study1, test_sets_study1)
+
+res_compare_arousal_study1 = custom_cv$clone()
+res_compare_arousal_study1$instantiate(compare_arousal_study1, train_sets_study1, test_sets_study1)
+
+cv_sets_gender_study1 = create_repeated_cv_resampling(nrow(affect_voice_gender_study1), 10, 5)
+train_sets_gender_study1 = cv_sets_gender_study1$train_sets
+test_sets_gender_study1 = cv_sets_gender_study1$test_sets
+
+res_egemaps_gender_study1 = custom_cv$clone()
+res_egemaps_gender_study1$instantiate(egemaps_gender_study1, train_sets_gender_study1, test_sets_gender_study1)
+
+# study 2
+
+cv_sets_study2 = create_repeated_cv_resampling(nrow(affect_voice_wordembeddings_study2), 10, 5)
+train_sets_study2 = cv_sets_study2$train_sets
+test_sets_study2 = cv_sets_study2$test_sets
+
+# Create resampling objects
+custom_cv = rsmp("custom")
+
+res_egemaps_arousal_study2 = custom_cv$clone()
+res_egemaps_arousal_study2$instantiate(egemaps_arousal_study2, train_sets_study2, test_sets_study2)
+
+res_egemaps_content_study2 = custom_cv$clone()
+res_egemaps_content_study2$instantiate(egemaps_content_study2, train_sets_study2, test_sets_study2)
+
+res_egemaps_sad_study2 = custom_cv$clone()
+res_egemaps_sad_study2$instantiate(egemaps_sad_study2, train_sets_study2, test_sets_study2)
+
+res_egemaps_arousal_diff_study2 = custom_cv$clone()
+res_egemaps_arousal_diff_study2$instantiate(egemaps_arousal_diff_study2, train_sets_study2, test_sets_study2)
+
+res_egemaps_content_diff_study2 = custom_cv$clone()
+res_egemaps_content_diff_study2$instantiate(egemaps_content_diff_study2, train_sets_study2, test_sets_study2)
+
+res_egemaps_sad_diff_study2 = custom_cv$clone()
+res_egemaps_sad_diff_study2$instantiate(egemaps_sad_diff_study2, train_sets_study2, test_sets_study2)
+
+res_compare_arousal_study2 = custom_cv$clone()
+res_compare_arousal_study2$instantiate(compare_arousal_study2, train_sets_study2, test_sets_study2)
+
+res_compare_content_study2 = custom_cv$clone()
+res_compare_content_study2$instantiate(compare_content_study2, train_sets_study2, test_sets_study2)
+
+res_compare_sad_study2 = custom_cv$clone()
+res_compare_sad_study2$instantiate(compare_sad_study2, train_sets_study2, test_sets_study2)
+
+res_compare_arousal_study2 = custom_cv$clone()
+res_compare_arousal_study2$instantiate(compare_arousal_study2, train_sets_study2, test_sets_study2)
+
+res_wordembeddings_content = custom_cv$clone()
+res_wordembeddings_content$instantiate(wordembeddings_content, train_sets_study2, test_sets_study2)
+
+res_wordembeddings_sad = custom_cv$clone()
+res_wordembeddings_sad$instantiate(wordembeddings_sad, train_sets_study2, test_sets_study2)
+
+res_wordembeddings_arousal = custom_cv$clone()
+res_wordembeddings_arousal$instantiate(wordembeddings_arousal, train_sets_study2, test_sets_study2)
+
+res_egemaps_wordembeddings_content = custom_cv$clone()
+res_egemaps_wordembeddings_content$instantiate(egemaps_wordembeddings_content, train_sets_study2, test_sets_study2)
+
+res_egemaps_wordembeddings_sad = custom_cv$clone()
+res_egemaps_wordembeddings_sad$instantiate(egemaps_wordembeddings_sad, train_sets_study2, test_sets_study2)
+
+res_egemaps_wordembeddings_arousal = custom_cv$clone()
+res_egemaps_wordembeddings_arousal$instantiate(egemaps_wordembeddings_arousal, train_sets_study2, test_sets_study2)
+
+cv_sets_gender_study2 = create_repeated_cv_resampling(nrow(affect_voice_wordembeddings_gender_study2), 10, 5)
+train_sets_gender_study2 = cv_sets_gender_study2$train_sets
+test_sets_gender_study2 = cv_sets_gender_study2$test_sets
+
+res_egemaps_gender_study2 = custom_cv$clone()
+res_egemaps_gender_study2$instantiate(egemaps_gender_study2, train_sets_gender_study2, test_sets_gender_study2)
 
 #### BENCHMARK: STUDY 1 ####
 
@@ -368,7 +492,12 @@ bmgrid_study1 = benchmark_grid(
            compare_arousal_study1
   ),
   learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
-  resampling = resampling
+  resampling = c(res_egemaps_valence_study1,
+                 res_egemaps_arousal_study1,
+                 res_egemaps_valence_diff_study1, 
+                 res_egemaps_arousal_diff_study1,
+                 res_compare_valence_study1, 
+                 res_compare_arousal_study1),
 )
 
 future::plan("multisession", workers = 5) # enable parallelization
@@ -386,7 +515,7 @@ lrn_classif_rr_po = po_impute_hist  %>>% lrn("classif.cv_glmnet", predict_type =
 bmgrid_egemaps_gender_study1 = benchmark_grid(
   task = c(egemaps_gender_study1),
   learner = list(lrn("classif.featureless", predict_type = "prob"), lrn_classif_rf_po, lrn_classif_rr_po ),
-  resampling = resampling
+  resampling = res_egemaps_gender_study1,
 )
 
 future::plan("multisession", workers = 5) # enable parallelization
@@ -425,7 +554,22 @@ bmgrid_study2 = benchmark_grid(
            egemaps_wordembeddings_sad
            ),
   learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
-  resampling = resampling
+  resampling = c(res_egemaps_arousal_study2,
+                 res_egemaps_content_study2,
+                 res_egemaps_sad_study2, 
+                 res_egemaps_arousal_diff_study2,  
+                 res_egemaps_content_diff_study2,
+                 res_egemaps_sad_diff_study2,
+                 res_compare_arousal_study2,
+                 res_compare_content_study2,
+                 res_compare_sad_study2,
+                 res_wordembeddings_arousal, 
+                 res_wordembeddings_content,
+                 res_wordembeddings_sad, 
+                 res_egemaps_wordembeddings_arousal,
+                 res_egemaps_wordembeddings_content,
+                 res_egemaps_wordembeddings_sad
+  )
 )
 
 future::plan("multisession", workers = 5) # enable parallelization
@@ -439,7 +583,7 @@ saveRDS(bmr_study2, "results/study2/bmr_study2.rds") # save results
 bmgrid_egemaps_gender_study2 = benchmark_grid(
   task = egemaps_gender_study2,
   learner = list(lrn("classif.featureless", predict_type = "prob"), lrn_classif_rf_po,lrn_classif_rr_po ),
-  resampling = resampling
+  resampling = res_egemaps_gender_study2
 )
 
 future::plan("multisession", workers = 5) # enable parallelization
@@ -502,7 +646,7 @@ pred_table_egemaps_wordembeddings_study2 <- results_table(affect_voice_wordembed
 
 # save prediction tables
 write.csv2(pred_table_egemaps_study1, "results/pred_table_egemaps_study1.csv")
-write.csv2(pred_table_egemaps_study1, "results/pred_table_egemaps_study1.csv")
+write.csv2(pred_table_egemaps_wordembeddings_study2, "results/pred_table_egemaps_study2.csv")
 
 # rename
 
@@ -590,17 +734,17 @@ bmr_plot_srho <-
   scale_x_discrete(
     element_blank(),
     labels = rev(c(
-      "Valence (Voice Cues)",
-      "Arousal (Voice Cues)",
-      "Contentedness (Voice Cues)",
-      "Sadness (Voice Cues)",
-      "Arousal (Voice Cues)",
+      "Valence (Prosody)",
+      "Arousal (Prosody)*",
+      "Contentedness (Prosody)*",
+      "Sadness (Prosody)",
+      "Arousal (Prosody)*",
       "Contentedness (Word Embeddings)",
       "Sadness (Word Embeddings)",
       "Arousal (Word Embeddings)",
-      "Contentedness (Voice + Embeddings)",
-      "Sadness (Voice + Embeddings)",
-      "Arousal (Voice + Embeddings)"
+      "Contentedness (Prosody + Embeddings)",
+      "Sadness (Prosody + Embeddings)",
+      "Arousal (Prosody + Embeddings)"
     )
     )) +
   scale_color_manual(values = c("#a6cee3", "#1f78b4", "#b2df8a"), name = "Algorithm") +
@@ -686,7 +830,7 @@ bmr_plot_srho <- bmr_plot_srho + theme(legend.position = "none") # remove legend
 
 bmr_plot_rsq <- bmr_plot_rsq + theme(legend.position = "none") # remove legend 
 
-
+# arrange plots
 bmr_plot <- bmr_plot_srho + bmr_plot_rsq + plot_layout(guides = "collect") & theme(legend.position = "top")
 
 

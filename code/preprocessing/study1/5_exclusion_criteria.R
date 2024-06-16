@@ -34,19 +34,28 @@ affect_voice <- affect_voice_raw %>%
   select(-new_id)
 
 # save data
-saveRDS(affect_voice, "data/study1/affect_voice_changed.rds") # load voice data
+saveRDS(affect_voice, "data/study1/affect_voice_changed.rds") # save voice data
 
 ### FILTED DATA BASED ON AFFECT DATA USER LEVEL) ####
+
+# read data
+affect_voice <- readRDS("data/study1/affect_voice_changed.rds") # load voice data
 
 ## remove participants with less than 10 experience sampling instances
 
 # count how many es instances with valence and arousal ratings are available per participant
 count_es_user <- affect_voice %>% 
-  dplyr::group_by(user_id) %>% 
+  dplyr::group_by(user_id, e_s_questionnaire_id) %>% 
   dplyr::count(sort =T)
 
+count_es_user <- affect_voice %>% 
+  dplyr::group_by(user_id) %>% 
+  dplyr::summarize(count = n_distinct(e_s_questionnaire_id)) %>% 
+  dplyr::arrange(desc(count))
+
+
 # find participants with less than 10 es instances
-length(which(count_es_user$n < 10))
+length(which(count_es_user$count < 10))
 
 # find participants with at least 5 es days
 enoughes_user <- count_es_user[ count_es_user$n >=10, "user_id"]

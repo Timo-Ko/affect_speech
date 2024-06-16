@@ -30,30 +30,19 @@ no_feature_columns_study2 = c("user_id", "timestamp",
                               "arousal", "md_arousal", "diff_arousal",
                               "Total.words" , "File.duration.in.seconds", "Voice.only.duration.in.seconds", "Sentiment.magnitude", "Sentiment.score")
 
-# apply functions for target-independent preprocessing (separately to each feature subset since they are used separately in prediction models)
+# apply functions for target-independent preprocessing (extreme outlier imputation)
 
 # study1
 
 affect_voice_study1_ml <- affect_voice_study1 # copy data frame
 
-affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1_ml) == "equivalentSoundLevel_dBp")] <-
-target_independent_preproc(affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1_ml) == "equivalentSoundLevel_dBp")], no_feature_columns_study1) # egemaps features
-
-affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_study1_ml) == "mfcc_sma_de[14]_stddevFallingSlope")] <-
-  target_independent_preproc(affect_voice_study1_ml[, which(colnames(affect_voice_study1_ml) == "audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_study1_ml) == "mfcc_sma_de[14]_stddevFallingSlope")], no_feature_columns_study1) # compare features
+affect_voice_study1_ml <- target_independent_preproc(affect_voice_study1_ml, no_feature_columns_study1) # egemaps features
 
 # study2
 
 affect_voice_wordembeddings_study2_ml <- affect_voice_wordembeddings_study2 # copy data frame
 
-affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "equivalentSoundLevel_dBp")] <-
-  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "equivalentSoundLevel_dBp")], no_feature_columns_study2) # egemaps features
-
-affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "mfcc_sma_de.14._stddevFallingSlope")] <-
-  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "mfcc_sma_de.14._stddevFallingSlope")], no_feature_columns_study2) # compare features
-
-affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1024_texts")] <-
-  target_independent_preproc(affect_voice_wordembeddings_study2_ml [, which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2_ml ) == "Dim1024_texts")], no_feature_columns_study2) # wordembedding features
+affect_voice_wordembeddings_study2_ml <- target_independent_preproc(affect_voice_wordembeddings_study2_ml, no_feature_columns_study2) # egemaps features
 
 # save data
 
