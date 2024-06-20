@@ -39,18 +39,18 @@ results_table = function(data, bmr_results){
   results.table = data.frame(task_id = rep(uni.tasks, length(uni.learner)),
                              learner_id = rep(uni.learner,  each = length(uni.tasks)),
 
-                             M_srho = rep(NA, length(uni.tasks)*length(uni.learner)),
+                             Md_srho = rep(NA, length(uni.tasks)*length(uni.learner)),
                              SD_srho = rep(NA, length(uni.tasks)*length(uni.learner)),
                              
-                             M_rsq = rep(NA, length(uni.tasks)*length(uni.learner)), 
+                             Md_rsq = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              SD_rsq = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              p_rsq = rep(NA, length(uni.tasks)*length(uni.learner)), 
-                             p_corrected_rsq = rep(NA, length(uni.tasks)*length(uni.learner)),
+                             #p_corrected_rsq = rep(NA, length(uni.tasks)*length(uni.learner)),
                              
-                             M_mae = rep(NA, length(uni.tasks)*length(uni.learner)), 
+                             Md_mae = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              SD_mae = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              
-                             M_rmse = rep(NA, length(uni.tasks)*length(uni.learner)), 
+                             Md_rmse = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              SD_rmse = rep(NA, length(uni.tasks)*length(uni.learner))
                              
                             )
@@ -60,48 +60,48 @@ results_table = function(data, bmr_results){
     df_test = bmr_results %>% dplyr::filter(task_id == uni.task) # filter out rows for that task
     
     ### featureless learner
-    results.table$M_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = mean(regr.srho, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = median(regr.srho, na.rm = TRUE)) %>% pull(value)
     results.table$SD_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = sd(regr.srho, na.rm = TRUE)) %>% pull(value)
     
-    results.table$M_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = mean(regr.rsq, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = median(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = sd(regr.rsq, na.rm = TRUE)) %>% pull(value)
     
-    results.table$M_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = mean(regr.mae, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = median(regr.mae, na.rm = TRUE)) %>% pull(value)
     results.table$SD_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = sd(regr.mae, na.rm = TRUE)) %>% pull(value)
     
-    results.table$M_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = mean(regr.rmse, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = median(regr.rmse, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[1]] = df_test %>% dplyr::filter(learner_id == uni.learner[1]) %>% summarise(value = sd(regr.rmse, na.rm = TRUE)) %>% pull(value)
     
     ### featureless vs random forest 
 
-    results.table$M_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = mean(regr.srho, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = median(regr.srho, na.rm = TRUE)) %>% pull(value)
     results.table$SD_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = sd(regr.srho, na.rm = TRUE)) %>% pull(value)
     
-    results.table$M_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = mean(regr.rsq, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = median(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = sd(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = sign_test_folds(df_test$regr.rsq[df_test$learner_id == uni.learner[[1]]], df_test$regr.rsq[df_test$learner_id == uni.learner[[2]]], n)
-    results.table$p_corrected_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = p.adjust(c(results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]]), n = 2*length(uni.tasks), method = "holm")
+    #results.table$p_corrected_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = p.adjust(c(results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]]), n = 2*length(uni.tasks), method = "holm")
     
-    results.table$M_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = mean(regr.mae, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = median(regr.mae, na.rm = TRUE)) %>% pull(value)
     results.table$SD_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = sd(regr.mae, na.rm = TRUE)) %>% pull(value)
     
-    results.table$M_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = mean(regr.rmse, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = median(regr.rmse, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = sd(regr.rmse, na.rm = TRUE)) %>% pull(value)
     
     ### featureless vs Lasso 
 
-    results.table$M_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = mean(regr.srho, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = median(regr.srho, na.rm = TRUE)) %>% pull(value)
     results.table$SD_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = sd(regr.srho, na.rm = TRUE)) %>% pull(value)
     
-    results.table$M_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = mean(regr.rsq, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = median(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = sd(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = sign_test_folds(df_test$regr.rsq[df_test$learner_id == uni.learner[[1]]], df_test$regr.rsq[df_test$learner_id == uni.learner[[3]]], n)
-    results.table$p_corrected_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = p.adjust(c(results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]]), n = 2*length(uni.tasks), method = "holm")
+    #results.table$p_corrected_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = p.adjust(c(results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]]), n = 2*length(uni.tasks), method = "holm")
     
-    results.table$M_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = mean(regr.mae, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = median(regr.mae, na.rm = TRUE)) %>% pull(value)
     results.table$SD_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = sd(regr.mae, na.rm = TRUE)) %>% pull(value)
     
-    results.table$M_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = mean(regr.rmse, na.rm = TRUE)) %>% pull(value)
+    results.table$Md_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = median(regr.rmse, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = sd(regr.rmse, na.rm = TRUE)) %>% pull(value)
     
 

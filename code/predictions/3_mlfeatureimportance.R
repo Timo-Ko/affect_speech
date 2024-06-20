@@ -100,7 +100,7 @@ saveRDS(model_rr_egemaps_arousal_study1, "results/study1/model_rr_egemaps_arousa
 saveRDS(model_rr_egemaps_content_study2, "results/study2/model_rr_egemaps_content_study2.rds") 
 saveRDS(model_rr_egemaps_arousal_study2, "results/study2/model_rr_egemaps_arousal_study2.rds") 
 
-#### SINGLE FEATURE IMPORTANCE: VOICE FEATURES ####
+#### SINGLE FEATURE IMPORTANCE: PROSODIC FEATURES ####
 
 # load models 
 
@@ -132,35 +132,11 @@ write.csv2(coefficients_arousal_study1, "results/coefficients_arousal_study1.csv
 write.csv2(coefficients_content_study2, "results/coefficients_content_study2.csv")
 write.csv2(coefficients_arousal_study2, "results/coefficients_arousal_study2.csv")
 
-# compute abs betas or number of features from each subgroup in the final model?
-# dots und dann profil verbinden?
-
-# find features that are in study 2 models and also in arousal study 1 model 
-
-# features_study2 <- unique(coefficients_content_study2$Variable, coefficients_arousal_study2$Variable)
-# 
-# shared_features <- coefficients_arousal_study1 %>% filter(coefficients_arousal_study1$Variable %in% features_study2)
-
-# Assuming your coefficients_arousal_study1 data frame is already sorted by Stand_Beta or you may sort it first
-# coefficients_arousal_study1 <- coefficients_arousal_study1[order(abs(coefficients_arousal_study1$Stand_Beta), decreasing = TRUE), ]
-
-# Select the top 10 features by absolute standardized beta value
-#top_features <- coefficients_arousal_study1[1:10, ]
-
-# # Add specific features if they are not already in the top 10
-# additional_features <- c("loudness_sma3_meanFallingSlope", "F3amplitudeLogRelF0_sma3nz_stddevNorm")
-# additional_features_df <- coefficients_arousal_study1[coefficients_arousal_study1$Variable %in% additional_features, ]
-# 
-# # Combine top features with the additional specific features, avoiding duplicates
-# coefficients_arousal_study1_subset <- rbind(top_features, additional_features_df)
-# coefficients_arousal_study1_subset <- subset_df[!duplicated(subset_df$Variable), ]
-
-# create data frame
+# create combined data frame
 combined_df <- data.frame(
   Feature = c(coefficients_arousal_study1$Variable[1:5], coefficients_content_study2$Variable[1:5], coefficients_arousal_study2$Variable[1:5]),
   Stand_Beta = c(coefficients_arousal_study1$Stand_Beta[1:5], coefficients_content_study2$Stand_Beta[1:5], coefficients_arousal_study2$Stand_Beta[1:5]),
-  Target = c(rep("Arousal (scripted speech)", 5), rep("Contentedness (free speech)", 5), rep("Arousal (free speech)", 5))#,
-  #Feature_Group = c("Frequency", "Spectral", ...)
+  Target = c(rep("Arousal (scripted speech)", 5), rep("Contentedness (spontaneous speech)", 5), rep("Arousal (spontaneous speech)", 5))
 )
 
 # Create a complete set of all combinations of features and tasks
@@ -170,53 +146,45 @@ all_combinations <- expand.grid(Feature = unique(combined_df$Feature), Target = 
 combined_df <- merge(all_combinations, combined_df, by = c("Feature", "Target"), all = TRUE) %>%
   replace(is.na(.), 0)
 
+
+# Create a named vector for mapping egemaps names to comprehensive names
+feature_names <- c(
+  "hammarbergIndexV_sma3nz_stddevNorm" = "Hammarberg Index (SD)",
+  "slopeV0.500_sma3nz_amean" = "Slope (M)",
+  "F1frequency_sma3nz_stddevNorm" = "F1 Frequency (SD)",
+  "F3frequency_sma3nz_stddevNorm" = "F3 Frequency (SD)",
+  "spectralFluxUV_sma3nz_amean" = "Spectral Flux unvoiced (M)",
+  "spectralFluxV_sma3nz_amean" = "Spectral Flux voiced (M)",
+  "loudness_sma3_amean" = "Loudness (M)",
+  "loudness_sma3_percentile80.0" = "Loudness (80th percentile)",
+  "mfcc1V_sma3nz_stddevNorm" = "MFCC1 voiced (SD)",
+  "equivalentSoundLevel_dBp" = "Equivalent Sound Level (dBP)",
+  "F3amplitudeLogRelF0_sma3nz_stddevNorm" = "F3 Amplitude relative to F0 (SD)",
+  "loudness_sma3_percentile50.0" = "Loudness (Md)"
+)
+
+# Replace the feature names in the combined_df
+combined_df$Feature <- factor(combined_df$Feature, levels = names(feature_names))
+combined_df$Feature <- recode(combined_df$Feature, !!!feature_names)
+
+
 combined_df$Feature <- factor(combined_df$Feature, levels = unique(combined_df$Feature)) # convert feature to factor
-
-#full_feature_order <- colnames(affect_voice_study1)[14:101]
-
-# # Filter the full order to include only features present in 'combined_df'
-# subset_feature_order <- full_feature_order[full_feature_order %in% combined_df$Feature]
-# 
-# # Reorder the 'Feature' factor levels in 'combined_df' according to 'subset_feature_order'
-# combined_df$Feature <- factor(combined_df$Feature, levels = subset_feature_order)
 
 feature_order <- combined_df %>%
   group_by(Feature) %>%
   summarise(max_signed_beta = if_else(max(Stand_Beta) > abs(min(Stand_Beta)), max(Stand_Beta), min(Stand_Beta))) %>%  # Max with sign retention
   arrange(desc(max_signed_beta))
 
-# # Reorder Feature based on the absolute magnitude of Stand_Beta in descending order
-# combined_df <- combined_df %>%
-#   dplyr::mutate(Feature = fct_reorder(Feature, Stand_Beta, .desc = TRUE))
-
-# # Set the desired order for your tasks
-# task_levels <- c("Arousal (scripted speech)", "Arousal (free speech)", "Contentedness (free speech)")
-# 
-# # Convert Task to a factor and set levels in the desired order
-# combined_df$Target <- factor(combined_df$Target, levels = task_levels)
-
 # Join feature order back to the combined_df to ensure consistent feature ordering
 combined_df <- left_join(combined_df, feature_order, by = "Feature")
 combined_df$Feature <- factor(combined_df$Feature, levels = feature_order$Feature)
 
-# Set the desired order for your targets
-task_levels <- c("Arousal (scripted speech)", "Arousal (free speech)", "Contentedness (free speech)")
+# Set the desired order for targets
+task_levels <- c("Arousal (scripted speech)", "Arousal (spontaneous speech)", "Contentedness (spontaneous speech)")
 combined_df$Target <- factor(combined_df$Target, levels = task_levels)
 
 
 # create the plot
-
-# # connected dots
-# betas_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, group = Target, color = Target)) +
-#   geom_point() +
-#   geom_line() + # This will connect the dots in the order of factors
-#   coord_flip() +
-#   theme_minimal(base_size = 25) +
-#   labs(x = element_blank() ,y = "Standardized Beta Coefficient") +
-#   theme(axis.text.x = element_text(angle = -45, hjust = 0), legend.position = "top") + # Rotate x labels for better readability
-#   scale_color_manual(values = c("Arousal (free speech)" = "#1f78b4" ,
-#                                 "Arousal (scripted speech)" = "#a6cee3", 
-#                                 "Contentedness (free speech)" = "#b2df8a"))
 
 # grouped bar plot
 betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stand_Beta, fill = Target)) +
@@ -224,12 +192,12 @@ betas_grouped_bar_plot <- ggplot(combined_df, aes(x = fct_rev(Feature), y = Stan
   coord_flip() + # Flips the axes so that features are on the y-axis
   theme_minimal(base_size = 25) +
   labs(y = "Standardized Beta Coefficient", x = element_blank()) +
+  ylim(-0.6, 0.6) + # Set limits for the y-axis (which is x-axis in the flipped coordinates)
   theme(axis.text.x = element_text(angle = -45, hjust = 0), # Adjust text angle and position for readability
          legend.position = "top") + # Positions the legend at the top
-  scale_fill_manual(values = c("Arousal (free speech)" = "#1f78b4",
+  scale_fill_manual(values = c("Arousal (spontaneous speech)" = "#1f78b4",
                                "Arousal (scripted speech)" = "#a6cee3", 
-                               "Contentedness (free speech)" = "#b2df8a"))
-
+                               "Contentedness (spontaneous speech)" = "#b2df8a"))
 
 # save plot 
 png(file="figures/betas_plot.png",width=1500, height=1500)
@@ -239,84 +207,84 @@ betas_grouped_bar_plot
 dev.off()
 
 
-#### GROUPED FEATURE IMPORTANCE PER FEATURE GROUP ####
-
-# load models 
-
-model_rr_egemaps_arousal_study1 <- readRDS( "results/study1/model_rr_egemaps_arousal_study1.rds") 
-model_rr_egemaps_content_study2 <- readRDS("results/study2/model_rr_egemaps_content_study2.rds") 
-model_rr_egemaps_arousal_study2 <- readRDS( "results/study2/model_rr_egemaps_arousal_study2.rds") 
-
-## create dalex explainers for each model 
-
-rr_exp_arousal_study1 <- DALEXtra::explain_mlr3(model_rr_egemaps_arousal_study1,
-                                                data = affect_voice_study1_arousal_imputed,
-                                                y        = affect_voice_study1_arousal_imputed$arousal,
-                                                label    = "rr_exp_arousal_study1",
-                                                colorize = FALSE)
-
-rr_exp_content_study2 <- DALEXtra::explain_mlr3(model_rr_egemaps_content_study2,
-                                                data = affect_voice_study2_content_imputed,
-                                                y        = affect_voice_study2_content_imputed$content,
-                                                label    = "rr_exp_content_study2",
-                                                colorize = FALSE)
-
-rr_exp_arousal_study2 <- DALEXtra::explain_mlr3(model_rr_egemaps_arousal_study2,
-                                                data = affect_voice_study2_arousal_imputed,
-                                                y        = affect_voice_study2_arousal_imputed$arousal,
-                                                label    = "rr_exp_arousal_study2",
-                                                colorize = FALSE)
-
-## get feature-group assignment
-
-# load csv with egemaps feature groups 
-egemaps_groups <- read.csv2("data/egemaps_feature_groups.csv")
-
-# update names
-egemaps_groups$feature <- colnames(affect_voice_study1[,c(which(colnames(affect_voice_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1)=="equivalentSoundLevel_dBp"))])
-
-# create nested list containing attributes and their respective features 
-
-variable_groups <- list() # create an empty list 
-
-# get colnames of each features group
-variable_groups[[1]] = egemaps_groups %>% filter(parameter_group == "frequency") %>% pull(feature)
-variable_groups[[2]] = egemaps_groups %>% filter(parameter_group == "energy_amplitude") %>% pull(feature)
-variable_groups[[3]] = egemaps_groups %>% filter(parameter_group == "spectral") %>% pull(feature)
-variable_groups[[4]] = egemaps_groups %>% filter(parameter_group == "temporal") %>% pull(feature)
-
-# Optionally, set names for each list element
-names(variable_groups) <- c("frequency", "energy_amplitude", "spectral", "temporal") # add names to the list 
-
-## compute grouped permutation feature importance
-
-imp_grouped_arousal_study1 = DALEX::model_parts(explainer = rr_exp_arousal_study1,
-                                                loss_function = loss_root_mean_square,
-                                                B = 10, # number of permutations
-                                                type = "variable_importance",
-                                                variable_groups = variable_groups)
-
-imp_grouped_content_study2 = DALEX::model_parts(explainer = rr_exp_content_study2,
-                                                loss_function = loss_root_mean_square,
-                                                B = 10, # number of permutations
-                                                type = "variable_importance",
-                                                variable_groups = variable_groups)
-
-imp_grouped_arousal_study2 = DALEX::model_parts(explainer = rr_exp_arousal_study2,
-                                                loss_function = loss_root_mean_square,
-                                                B = 10, # number of permutations
-                                                type = "variable_importance",
-                                                variable_groups = variable_groups)
-
-
-# plot results of grouped feature importance
-plot_vi_grouped = plot(imp_grouped_arousal_study1) +
-  ggtitle("Mean variable-importance over 10 permutations", "") +
-  labs(subtitle = "")
-
-# combine plots
-
-saveRDS(plot_vi_grouped, "plot_imp_grouped.rds")
+# #### GROUPED FEATURE IMPORTANCE PER FEATURE GROUP ####
+# 
+# # load models 
+# 
+# model_rr_egemaps_arousal_study1 <- readRDS( "results/study1/model_rr_egemaps_arousal_study1.rds") 
+# model_rr_egemaps_content_study2 <- readRDS("results/study2/model_rr_egemaps_content_study2.rds") 
+# model_rr_egemaps_arousal_study2 <- readRDS( "results/study2/model_rr_egemaps_arousal_study2.rds") 
+# 
+# ## create dalex explainers for each model 
+# 
+# rr_exp_arousal_study1 <- DALEXtra::explain_mlr3(model_rr_egemaps_arousal_study1,
+#                                                 data = affect_voice_study1_arousal_imputed,
+#                                                 y        = affect_voice_study1_arousal_imputed$arousal,
+#                                                 label    = "rr_exp_arousal_study1",
+#                                                 colorize = FALSE)
+# 
+# rr_exp_content_study2 <- DALEXtra::explain_mlr3(model_rr_egemaps_content_study2,
+#                                                 data = affect_voice_study2_content_imputed,
+#                                                 y        = affect_voice_study2_content_imputed$content,
+#                                                 label    = "rr_exp_content_study2",
+#                                                 colorize = FALSE)
+# 
+# rr_exp_arousal_study2 <- DALEXtra::explain_mlr3(model_rr_egemaps_arousal_study2,
+#                                                 data = affect_voice_study2_arousal_imputed,
+#                                                 y        = affect_voice_study2_arousal_imputed$arousal,
+#                                                 label    = "rr_exp_arousal_study2",
+#                                                 colorize = FALSE)
+# 
+# ## get feature-group assignment
+# 
+# # load csv with egemaps feature groups 
+# egemaps_groups <- read.csv2("data/egemaps_feature_groups.csv")
+# 
+# # update names
+# egemaps_groups$feature <- colnames(affect_voice_study1[,c(which(colnames(affect_voice_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1)=="equivalentSoundLevel_dBp"))])
+# 
+# # create nested list containing attributes and their respective features 
+# 
+# variable_groups <- list() # create an empty list 
+# 
+# # get colnames of each features group
+# variable_groups[[1]] = egemaps_groups %>% filter(parameter_group == "frequency") %>% pull(feature)
+# variable_groups[[2]] = egemaps_groups %>% filter(parameter_group == "energy_amplitude") %>% pull(feature)
+# variable_groups[[3]] = egemaps_groups %>% filter(parameter_group == "spectral") %>% pull(feature)
+# variable_groups[[4]] = egemaps_groups %>% filter(parameter_group == "temporal") %>% pull(feature)
+# 
+# # Optionally, set names for each list element
+# names(variable_groups) <- c("frequency", "energy_amplitude", "spectral", "temporal") # add names to the list 
+# 
+# ## compute grouped permutation feature importance
+# 
+# imp_grouped_arousal_study1 = DALEX::model_parts(explainer = rr_exp_arousal_study1,
+#                                                 loss_function = loss_root_mean_square,
+#                                                 B = 10, # number of permutations
+#                                                 type = "variable_importance",
+#                                                 variable_groups = variable_groups)
+# 
+# imp_grouped_content_study2 = DALEX::model_parts(explainer = rr_exp_content_study2,
+#                                                 loss_function = loss_root_mean_square,
+#                                                 B = 10, # number of permutations
+#                                                 type = "variable_importance",
+#                                                 variable_groups = variable_groups)
+# 
+# imp_grouped_arousal_study2 = DALEX::model_parts(explainer = rr_exp_arousal_study2,
+#                                                 loss_function = loss_root_mean_square,
+#                                                 B = 10, # number of permutations
+#                                                 type = "variable_importance",
+#                                                 variable_groups = variable_groups)
+# 
+# 
+# # plot results of grouped feature importance
+# plot_vi_grouped = plot(imp_grouped_arousal_study1) +
+#   ggtitle("Mean variable-importance over 10 permutations", "") +
+#   labs(subtitle = "")
+# 
+# # combine plots
+# 
+# saveRDS(plot_vi_grouped, "plot_imp_grouped.rds")
 
 
 
