@@ -15,6 +15,7 @@ demographics_df <- readRDS("data/study1/demographics_df.RData")
 
 # merge data
 affect_voice <- voice_features %>%
+  dplyr::filter(if_any(voicingFinalUnclipped_sma_amean:last_col(), ~ !is.na(.))) %>% # remove rows where voice features are NA (probably logging error)
   dplyr::inner_join(affect_df, by=c("e_s_questionnaire_id" = "e_s_questionnaire_id", "user_id" = "user_id", "questionnaireStartedTimestamp" = "questionnaireStartedTimestamp")) %>%  # join w voice features
   dplyr::left_join(demographics_df, by=c("user_id" = "p_0001")) # join w demographics
 
