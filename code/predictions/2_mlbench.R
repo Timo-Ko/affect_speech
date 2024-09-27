@@ -28,71 +28,121 @@ colnames(affect_voice_wordembeddings_study2) <- make.names(colnames(affect_voice
 
 #### CREATE TASKS: STUDY 1 ####
 
-## state affect experience
-
 # raw valence score 
-egemaps_valence_study1 = TaskRegr$new(id = "egemaps_valence", 
-                               backend = affect_voice_study1[,c(which(colnames(affect_voice_study1)=="user_id"), 
-                                                           which(colnames(affect_voice_study1)=="valence"),  
-                                                           which(colnames(affect_voice_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1)=="equivalentSoundLevel_dBp"))], 
-                               target = "valence")
+egemaps_valence_study1 <- TaskRegr$new(
+  id = "egemaps_valence", 
+  backend = affect_voice_study1 %>%
+    select(user_id, valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "valence"
+)
 
 # raw arousal score
-egemaps_arousal_study1 = TaskRegr$new(id = "egemaps_arousal", 
-                               backend = affect_voice_study1[,c(which(colnames(affect_voice_study1)=="user_id"), 
-                                                           which(colnames(affect_voice_study1)=="arousal"),  
-                                                           which(colnames(affect_voice_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1)=="equivalentSoundLevel_dBp"))], 
-                               target = "arousal")
+egemaps_arousal_study1 <- TaskRegr$new(
+  id = "egemaps_arousal", 
+  backend = affect_voice_study1 %>%
+    select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "arousal"
+)
+
+## supplementary predictions: predictions per sentence condition
+
+egemaps_valence_poscond_study1 <- TaskRegr$new(
+  id = "egemaps_valence",
+  backend = affect_voice_study1 %>%
+    filter(condition == "positive") %>%
+    select(user_id, valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "valence"
+)
+
+egemaps_valence_neucond_study1 <- TaskRegr$new(
+  id = "egemaps_valence", 
+  backend = affect_voice_study1 %>%
+    filter(condition == "neutral") %>%
+    select(user_id, valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "valence"
+)
+
+egemaps_valence_negcond_study1 <- TaskRegr$new(
+  id = "egemaps_valence", 
+  backend = affect_voice_study1 %>%
+    filter(condition == "negative") %>%
+    select(user_id, valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "valence"
+)
+
+egemaps_arousal_poscond_study1 <- TaskRegr$new(
+  id = "egemaps_arousal",
+  backend = affect_voice_study1 %>%
+    filter(condition == "positive") %>%
+    select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "arousal"
+)
+
+egemaps_arousal_neucond_study1 <- TaskRegr$new(
+  id = "egemaps_arousal", 
+  backend = affect_voice_study1 %>%
+    filter(condition == "neutral") %>%
+    select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "arousal"
+)
+
+egemaps_arousal_negcond_study1 <- TaskRegr$new(
+  id = "egemaps_arousal", 
+  backend = affect_voice_study1 %>%
+    filter(condition == "negative") %>%
+    select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "arousal"
+)
 
 ## supplementary predictions: fluctuation from baseline
 
 # valence fluctuation from baseline
-egemaps_valence_diff_study1 = TaskRegr$new(id = "egemaps_valence_diff", 
-                                    backend = affect_voice_study1[,c(which(colnames(affect_voice_study1)=="user_id"), 
-                                                                which(colnames(affect_voice_study1)=="diff_valence"),  
-                                                                which(colnames(affect_voice_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1)=="equivalentSoundLevel_dBp"))], 
-                                    target = "diff_valence")
+egemaps_valence_diff_study1 <- TaskRegr$new(
+  id = "egemaps_valence_diff", 
+  backend = affect_voice_study1 %>%
+    select(user_id, diff_valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "diff_valence"
+)
 
 # arousal fluctuation from baseline
-egemaps_arousal_diff_study1 = TaskRegr$new(id = "egemaps_arousal_diff", 
-                                    backend = affect_voice_study1[,c(which(colnames(affect_voice_study1)=="user_id"), 
-                                                                which(colnames(affect_voice_study1)=="diff_arousal"),  
-                                                                which(colnames(affect_voice_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1)=="equivalentSoundLevel_dBp"))], 
-                                    target = "diff_arousal")
+egemaps_arousal_diff_study1 <- TaskRegr$new(
+  id = "egemaps_arousal_diff", 
+  backend = affect_voice_study1 %>%
+    select(user_id, diff_arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "diff_arousal"
+)
 
 ## supplementary predictions: compare feature set
 
 # valence
-compare_valence_study1 = TaskRegr$new(id = "compare_valence", 
-                               backend = affect_voice_study1[,c(which(colnames(affect_voice_study1)=="user_id"), 
-                                                           which(colnames(affect_voice_study1)=="valence"),  
-                                                           which(colnames(affect_voice_study1)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_study1)=="mfcc_sma_de.14._stddevFallingSlope"))], 
-                               target = "valence")
+compare_valence_study1 <- TaskRegr$new(
+  id = "compare_valence", 
+  backend = affect_voice_study1 %>%
+    select(user_id, valence, audspec_lengthL1norm_sma_range:mfcc_sma_de.14._stddevFallingSlope),
+  target = "valence"
+)
 
 # arousal
-compare_arousal_study1 = TaskRegr$new(id = "compare_arousal", 
-                               backend = affect_voice_study1[,c(which(colnames(affect_voice_study1)=="user_id"), 
-                                                           which(colnames(affect_voice_study1)=="arousal"),  
-                                                           which(colnames(affect_voice_study1)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_study1)=="mfcc_sma_de.14._stddevFallingSlope"))], 
-                               target = "arousal")
-
+compare_arousal_study1 <- TaskRegr$new(
+  id = "compare_arousal", 
+  backend = affect_voice_study1 %>%
+    select(user_id, arousal, audspec_lengthL1norm_sma_range:mfcc_sma_de.14._stddevFallingSlope),
+  target = "arousal"
+)
 
 # supplementary prediction: gender
+affect_voice_gender_study1 <- affect_voice_study1 %>%
+  filter(!is.na(Demo_GE1)) %>% # remove rows with missing gender data
+  mutate(Demo_GE1 = as.factor(Demo_GE1)) # convert gender to factor
 
-affect_voice_gender_study1 <- affect_voice_study1[!is.na(affect_voice_study1$Demo_GE1),] # create new df with no missing data for gender
-affect_voice_gender_study1$Demo_GE1 <- as.factor(affect_voice_gender_study1$Demo_GE1) # convert gender to factor
-
-egemaps_gender_study1 = TaskClassif$new(id = "egemaps_gender_study1", 
-                                        backend = affect_voice_gender_study1[,c(which(colnames(affect_voice_gender_study1)=="user_id"),
-                                                                           which(colnames(affect_voice_gender_study1)=="Demo_GE1"),  
-                                                                           which(colnames(affect_voice_gender_study1)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_gender_study1)=="equivalentSoundLevel_dBp"))], 
-                                        target = "Demo_GE1")
+egemaps_gender_study1 <- TaskClassif$new(
+  id = "egemaps_gender_study1", 
+  backend = affect_voice_gender_study1 %>%
+    select(user_id, Demo_GE1, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp), 
+  target = "Demo_GE1"
+)
 
 ## add blocking
-
-# gender
-egemaps_gender_study1$col_roles$group = "user_id"
-egemaps_gender_study1$col_roles$feature = setdiff(egemaps_gender_study1$col_roles$feature, "user_id")
 
 # raw valence score
 egemaps_valence_study1$col_roles$group = "user_id"
@@ -101,6 +151,33 @@ egemaps_valence_study1$col_roles$feature = setdiff(egemaps_valence_study1$col_ro
 # raw arousal score
 egemaps_arousal_study1$col_roles$group = "user_id"
 egemaps_arousal_study1$col_roles$feature = setdiff(egemaps_arousal_study1$col_roles$feature, "user_id")
+
+# supplementary analyses
+
+# raw valence score - positive sentences
+egemaps_valence_poscond_study1$col_roles$group = "user_id"
+egemaps_valence_poscond_study1$col_roles$feature = setdiff(egemaps_valence_poscond_study1$col_roles$feature, "user_id")
+
+# raw valence score - neutral sentences
+egemaps_valence_neucond_study1$col_roles$group = "user_id"
+egemaps_valence_neucond_study1$col_roles$feature = setdiff(egemaps_valence_neucond_study1$col_roles$feature, "user_id")
+
+# raw valence score - negative sentences
+egemaps_valence_negcond_study1$col_roles$group = "user_id"
+egemaps_valence_negcond_study1$col_roles$feature = setdiff(egemaps_valence_negcond_study1$col_roles$feature, "user_id")
+
+# raw arousal score - positive sentences
+egemaps_arousal_poscond_study1$col_roles$group = "user_id"
+egemaps_arousal_poscond_study1$col_roles$feature = setdiff(egemaps_arousal_poscond_study1$col_roles$feature, "user_id")
+
+# raw arousal score - neutral sentences
+egemaps_arousal_neucond_study1$col_roles$group = "user_id"
+egemaps_arousal_neucond_study1$col_roles$feature = setdiff(egemaps_arousal_neucond_study1$col_roles$feature, "user_id")
+
+# raw arousal score - negative sentences
+egemaps_arousal_negcond_study1$col_roles$group = "user_id"
+egemaps_arousal_negcond_study1$col_roles$feature = setdiff(egemaps_arousal_negcond_study1$col_roles$feature, "user_id")
+
 
 # valence difference from baseline
 egemaps_valence_diff_study1$col_roles$group = "user_id"
@@ -118,138 +195,154 @@ compare_valence_study1$col_roles$feature = setdiff(compare_valence_study1$col_ro
 compare_arousal_study1$col_roles$group = "user_id"
 compare_arousal_study1$col_roles$feature = setdiff(compare_arousal_study1$col_roles$feature, "user_id")
 
+# gender
+egemaps_gender_study1$col_roles$group = "user_id"
+egemaps_gender_study1$col_roles$feature = setdiff(egemaps_gender_study1$col_roles$feature, "user_id")
+
 #### CREATE TASKS: STUDY 2 ####
 
-## benchmark predictions
-
-# supplementary analysis: gender
-affect_voice_wordembeddings_gender_study2 <- affect_voice_wordembeddings_study2[!is.na(affect_voice_wordembeddings_study2$Gender),] # create new df with no missing data for gender
-affect_voice_wordembeddings_gender_study2$Gender <- as.factor(affect_voice_wordembeddings_gender_study2$Gender) # convert gender to factor
-
-egemaps_gender_study2 = TaskClassif$new(id = "egemaps_gender", 
-                           backend = affect_voice_wordembeddings_gender_study2[,c(which(colnames(affect_voice_wordembeddings_gender_study2)=="user_id"), 
-                                                         which(colnames(affect_voice_wordembeddings_gender_study2)== "Gender"), 
-                                                         which(colnames(affect_voice_wordembeddings_gender_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_gender_study2)=="equivalentSoundLevel_dBp"))], 
-                           target = "Gender")
-
-## egemaps feature set
-
 # raw contentedness score
-egemaps_content_study2 = TaskRegr$new(id = "egemaps_content", 
-                               backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                             which(colnames(affect_voice_wordembeddings_study2)== "content"), 
-                                                             which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
-                               target = "content")
+egemaps_content_study2 <- TaskRegr$new(
+  id = "egemaps_content", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, content, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "content"
+)
 
 # raw sadness score
-egemaps_sad_study2 = TaskRegr$new(id = "egemaps_sad", 
-                           backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)== "sad"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
-                           target = "sad")
+egemaps_sad_study2 <- TaskRegr$new(
+  id = "egemaps_sad", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, sad, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "sad"
+)
 
 # raw arousal score
-egemaps_arousal_study2 = TaskRegr$new(id = "egemaps_arousal", 
-                           backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)== "arousal"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
-                           target = "arousal")
+egemaps_arousal_study2 <- TaskRegr$new(
+  id = "egemaps_arousal", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "arousal"
+)
 
 ## supplementary analyses: fluctuations
 
 # content fluctuation from baseline
-egemaps_content_diff_study2 = TaskRegr$new(id = "egemaps_content_diff", 
-                                    backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                  which(colnames(affect_voice_wordembeddings_study2)== "diff_content"), 
-                                                                  which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
-                                    target = "diff_content")
+egemaps_content_diff_study2 <- TaskRegr$new(
+  id = "egemaps_content_diff", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, diff_content, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "diff_content"
+)
 
 # sad fluctuation from baseline
-egemaps_sad_diff_study2 = TaskRegr$new(id = "egemaps_sad_diff", 
-                                backend =  affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                               which(colnames(affect_voice_wordembeddings_study2)== "diff_sad"), 
-                                                               which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
-                                target = "diff_sad")
+egemaps_sad_diff_study2 <- TaskRegr$new(
+  id = "egemaps_sad_diff", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, diff_sad, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "diff_sad"
+)
 
 # arousal fluctuation from baseline
-egemaps_arousal_diff_study2 = TaskRegr$new(id = "egemaps_arousal_diff", 
-                                backend =  affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                               which(colnames(affect_voice_wordembeddings_study2)== "diff_arousal"), 
-                                                               which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))], 
-                                target = "diff_arousal")
+egemaps_arousal_diff_study2 <- TaskRegr$new(
+  id = "egemaps_arousal_diff", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, diff_arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
+  target = "diff_arousal"
+)
 
 ## supplementary analyses: compare feature set
 
 # raw contentedness score
-compare_content_study2 = TaskRegr$new(id = "compare_content", 
-                               backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                  which(colnames(affect_voice_wordembeddings_study2)== "content"), 
-                                                                  which(colnames(affect_voice_wordembeddings_study2)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2)=="mfcc_sma_de.14._stddevFallingSlope"))], 
-                               target = "content")
+compare_content_study2 <- TaskRegr$new(
+  id = "compare_content", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, content, audspec_lengthL1norm_sma_range:mfcc_sma_de.14._stddevFallingSlope),
+  target = "content"
+)
 
 # raw sadness score
-compare_sad_study2 = TaskRegr$new(id = "compare_sad", 
-                           backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                              which(colnames(affect_voice_wordembeddings_study2)== "sad"), 
-                                                              which(colnames(affect_voice_wordembeddings_study2)== "audspec_lengthL1norm_sma_range"), which(colnames(affect_voice_wordembeddings_study2)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2)=="mfcc_sma_de.14._stddevFallingSlope"))], 
-                           target = "sad")
+compare_sad_study2 <- TaskRegr$new(
+  id = "compare_sad", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, sad, audspec_lengthL1norm_sma_range:mfcc_sma_de.14._stddevFallingSlope),
+  target = "sad"
+)
 
 # raw arousal score
-compare_arousal_study2 = TaskRegr$new(id = "compare_arousal", 
-                               backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                               which(colnames(affect_voice_wordembeddings_study2)== "arousal"), 
-                                                                               which(colnames(affect_voice_wordembeddings_study2)=="audspec_lengthL1norm_sma_range"):which(colnames(affect_voice_wordembeddings_study2)=="mfcc_sma_de.14._stddevFallingSlope"))], 
-                               target = "arousal")
+compare_arousal_study2 <- TaskRegr$new(
+  id = "compare_arousal", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, arousal, audspec_lengthL1norm_sma_range:mfcc_sma_de.14._stddevFallingSlope),
+  target = "arousal"
+)
+
+# supplementary analysis: gender
+affect_voice_wordembeddings_gender_study2 <- affect_voice_wordembeddings_study2 %>%
+  filter(!is.na(Gender)) %>% # create new df with no missing data for gender
+  mutate(Gender = as.factor(Gender)) # convert gender to factor
+
+egemaps_gender_study2 <- TaskClassif$new(
+  id = "egemaps_gender", 
+  backend = affect_voice_wordembeddings_gender_study2 %>%
+    select(user_id, Gender, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp), 
+  target = "Gender"
+)
 
 ## word embeddings 
 
 # raw contentedness score
-wordembeddings_content = TaskRegr$new(id = "wordembeddings_content", 
-                                      backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="content"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                      target = "content")
+wordembeddings_content <- TaskRegr$new(
+  id = "wordembeddings_content", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, content, Dim1_texts:Dim1024_texts),
+  target = "content"
+)
 
 # raw sadness score
-wordembeddings_sad = TaskRegr$new(id = "wordembeddings_sad", 
-                                  backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                  which(colnames(affect_voice_wordembeddings_study2)=="sad"), 
-                                                                                  which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                  target = "sad")
+wordembeddings_sad <- TaskRegr$new(
+  id = "wordembeddings_sad", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, sad, Dim1_texts:Dim1024_texts),
+  target = "sad"
+)
 
 # raw arousal score
-wordembeddings_arousal = TaskRegr$new(id = "wordembeddings_arousal", 
-                                      backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="arousal"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                      target = "arousal")
-
+wordembeddings_arousal <- TaskRegr$new(
+  id = "wordembeddings_arousal", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, arousal, Dim1_texts:Dim1024_texts),
+  target = "arousal"
+)
 
 ## egemaps + word embeddings 
 
 # raw contentedness score
-egemaps_wordembeddings_content = TaskRegr$new(id = "egemaps_wordembeddings_content", 
-                                      backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="content"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                      target = "content")
+egemaps_wordembeddings_content <- TaskRegr$new(
+  id = "egemaps_wordembeddings_content", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, content, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp, 
+           Dim1_texts:Dim1024_texts),
+  target = "content"
+)
 
 # raw sadness score
-egemaps_wordembeddings_sad = TaskRegr$new(id = "egemaps_wordembeddings_sad", 
-                                  backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                  which(colnames(affect_voice_wordembeddings_study2)=="sad"), 
-                                                                                  which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"), 
-                                                                                  which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                  target = "sad")
+egemaps_wordembeddings_sad <- TaskRegr$new(
+  id = "egemaps_wordembeddings_sad", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, sad, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp, 
+           Dim1_texts:Dim1024_texts),
+  target = "sad"
+)
 
 # raw arousal score
-egemaps_wordembeddings_arousal = TaskRegr$new(id = "egemaps_wordembeddings_arousal", 
-                                      backend = affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="user_id"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="arousal"),
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"), 
-                                                                                      which(colnames(affect_voice_wordembeddings_study2)=="Dim1_texts"):which(colnames(affect_voice_wordembeddings_study2)=="Dim1024_texts"))], 
-                                      target = "arousal")
+egemaps_wordembeddings_arousal <- TaskRegr$new(
+  id = "egemaps_wordembeddings_arousal", 
+  backend = affect_voice_wordembeddings_study2 %>%
+    select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp, 
+           Dim1_texts:Dim1024_texts),
+  target = "arousal"
+)
 
 ## add blocking
 
@@ -325,154 +418,25 @@ egemaps_wordembeddings_arousal$col_roles$feature = setdiff(egemaps_wordembedding
 
 lrn_fl = lrn("regr.featureless")
 lrn_rf = lrn("regr.ranger", 
-             num.trees =1000) # random forest
-lrn_rr = lrn("regr.cv_glmnet"#,
-             ) # lasso
+             num.trees = 1000) # random forest with 1,000 trees
+
+# Implement Elastic Net using cv_glmnet
+lrn_en = lrn("regr.cv_glmnet", 
+             alpha = 0.5)  # Adjust alpha (0.5 for equal mix of L1 and L2)
 
 ### PREPROCESSING IN CV ####
 
 po_impute_hist = po("imputehist") # hist imputation
-po_impute_oor = po("imputeoor") # out of range imputation
+po_impute_oor = po("imputeoor")   # out of range imputation
 
 # combine training with pre-processing
-lrn_rf_po = po_impute_oor  %>>% lrn_rf
-lrn_rr_po =  po_impute_hist  %>>% lrn_rr
+lrn_rf_po = po_impute_oor %>>% lrn_rf
+lrn_en_po = po_impute_hist %>>% lrn_en
 
 #### RESAMPLING ####
 
 # repeated cv
 repeated_cv = rsmp("repeated_cv", repeats = 5, folds = 10)
-
-# # custom cv causes issues w the blocking!!
-# 
-# # create function for cv folds
-# create_repeated_cv_resampling = function(n_rows, n_folds, n_repeats) {
-#   results = list(train_sets = list(), test_sets = list())
-#   
-#   for (repeat_index in 1:n_repeats) {
-#     # Shuffle indices
-#     shuffled_indices = sample(n_rows)
-#     
-#     # Determine fold sizes accounting for remainder
-#     fold_sizes = rep(n_rows %/% n_folds, n_folds)
-#     fold_sizes[1:(n_rows %% n_folds)] = fold_sizes[1:(n_rows %% n_folds)] + 1
-#     
-#     # Create fold assignments
-#     folds = split(shuffled_indices, rep(1:n_folds, fold_sizes))
-#     
-#     # Create training and testing sets for each fold
-#     for (fold_index in seq_along(folds)) {
-#       test_indices = folds[[fold_index]]
-#       train_indices = unlist(folds[-fold_index], use.names = FALSE)
-#       
-#       results$train_sets[[length(results$train_sets) + 1]] = train_indices
-#       results$test_sets[[length(results$test_sets) + 1]] = test_indices
-#     }
-#   }
-#   
-#   return(results)
-# }
-# 
-# # study 1
-# 
-# cv_sets_study1 = create_repeated_cv_resampling(nrow(affect_voice_study1), 10, 5)
-# train_sets_study1 = cv_sets_study1$train_sets
-# test_sets_study1 = cv_sets_study1$test_sets
-# 
-# # Create resampling objects
-# custom_cv = rsmp("custom")
-# 
-# res_study1 = custom_cv$clone()
-# res_study1$instantiate(egemaps_valence_study1, train_sets_study1, test_sets_study1)
-# # 
-# # res_egemaps_arousal_study1 = custom_cv$clone()
-# # res_egemaps_arousal_study1$instantiate(egemaps_arousal_study1, train_sets_study1, test_sets_study1)
-# # 
-# # res_egemaps_valence_diff_study1 = custom_cv$clone()
-# # res_egemaps_valence_diff_study1$instantiate(egemaps_valence_diff_study1, train_sets_study1, test_sets_study1)
-# # 
-# # res_egemaps_arousal_diff_study1 = custom_cv$clone()
-# # res_egemaps_arousal_diff_study1$instantiate(egemaps_arousal_diff_study1, train_sets_study1, test_sets_study1)
-# # 
-# # res_compare_valence_study1 = custom_cv$clone()
-# # res_compare_valence_study1$instantiate(compare_valence_study1, train_sets_study1, test_sets_study1)
-# # 
-# # res_compare_arousal_study1 = custom_cv$clone()
-# # res_compare_arousal_study1$instantiate(compare_arousal_study1, train_sets_study1, test_sets_study1)
-# # 
-# # res_compare_arousal_study1 = custom_cv$clone()
-# # res_compare_arousal_study1$instantiate(compare_arousal_study1, train_sets_study1, test_sets_study1)
-# 
-# cv_sets_gender_study1 = create_repeated_cv_resampling(nrow(affect_voice_gender_study1), 10, 5)
-# train_sets_gender_study1 = cv_sets_gender_study1$train_sets
-# test_sets_gender_study1 = cv_sets_gender_study1$test_sets
-# 
-# res_egemaps_gender_study1 = custom_cv$clone()
-# res_egemaps_gender_study1$instantiate(egemaps_gender_study1, train_sets_gender_study1, test_sets_gender_study1)
-# 
-# # study 2
-# 
-# cv_sets_study2 = create_repeated_cv_resampling(nrow(affect_voice_wordembeddings_study2), 10, 5)
-# train_sets_study2 = cv_sets_study2$train_sets
-# test_sets_study2 = cv_sets_study2$test_sets
-# 
-# # Create resampling objects
-# custom_cv = rsmp("custom")
-# 
-# res_egemaps_arousal_study2 = custom_cv$clone()
-# res_egemaps_arousal_study2$instantiate(egemaps_arousal_study2, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_content_study2 = custom_cv$clone()
-# res_egemaps_content_study2$instantiate(egemaps_content_study2, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_sad_study2 = custom_cv$clone()
-# res_egemaps_sad_study2$instantiate(egemaps_sad_study2, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_arousal_diff_study2 = custom_cv$clone()
-# res_egemaps_arousal_diff_study2$instantiate(egemaps_arousal_diff_study2, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_content_diff_study2 = custom_cv$clone()
-# res_egemaps_content_diff_study2$instantiate(egemaps_content_diff_study2, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_sad_diff_study2 = custom_cv$clone()
-# res_egemaps_sad_diff_study2$instantiate(egemaps_sad_diff_study2, train_sets_study2, test_sets_study2)
-# 
-# res_compare_arousal_study2 = custom_cv$clone()
-# res_compare_arousal_study2$instantiate(compare_arousal_study2, train_sets_study2, test_sets_study2)
-# 
-# res_compare_content_study2 = custom_cv$clone()
-# res_compare_content_study2$instantiate(compare_content_study2, train_sets_study2, test_sets_study2)
-# 
-# res_compare_sad_study2 = custom_cv$clone()
-# res_compare_sad_study2$instantiate(compare_sad_study2, train_sets_study2, test_sets_study2)
-# 
-# res_compare_arousal_study2 = custom_cv$clone()
-# res_compare_arousal_study2$instantiate(compare_arousal_study2, train_sets_study2, test_sets_study2)
-# 
-# res_wordembeddings_content = custom_cv$clone()
-# res_wordembeddings_content$instantiate(wordembeddings_content, train_sets_study2, test_sets_study2)
-# 
-# res_wordembeddings_sad = custom_cv$clone()
-# res_wordembeddings_sad$instantiate(wordembeddings_sad, train_sets_study2, test_sets_study2)
-# 
-# res_wordembeddings_arousal = custom_cv$clone()
-# res_wordembeddings_arousal$instantiate(wordembeddings_arousal, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_wordembeddings_content = custom_cv$clone()
-# res_egemaps_wordembeddings_content$instantiate(egemaps_wordembeddings_content, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_wordembeddings_sad = custom_cv$clone()
-# res_egemaps_wordembeddings_sad$instantiate(egemaps_wordembeddings_sad, train_sets_study2, test_sets_study2)
-# 
-# res_egemaps_wordembeddings_arousal = custom_cv$clone()
-# res_egemaps_wordembeddings_arousal$instantiate(egemaps_wordembeddings_arousal, train_sets_study2, test_sets_study2)
-# 
-# cv_sets_gender_study2 = create_repeated_cv_resampling(nrow(affect_voice_wordembeddings_gender_study2), 10, 5)
-# train_sets_gender_study2 = cv_sets_gender_study2$train_sets
-# test_sets_gender_study2 = cv_sets_gender_study2$test_sets
-# 
-# res_egemaps_gender_study2 = custom_cv$clone()
-# res_egemaps_gender_study2$instantiate(egemaps_gender_study2, train_sets_gender_study2, test_sets_gender_study2)
 
 #### BENCHMARK: STUDY 1 ####
 
@@ -489,6 +453,9 @@ progressr::handlers("progress")
 bmgrid_study1 = benchmark_grid(
   task = list(egemaps_valence_study1,
            egemaps_arousal_study1,
+           egemaps_valence_poscond_study1, # supplementary analyses: separate conditions
+           egemaps_valence_neucond_study1,
+           egemaps_valence_negcond_study1,
            egemaps_valence_diff_study1, # supplementary analyses: affect fluctuation
            egemaps_arousal_diff_study1,
            compare_valence_study1, # supplementary analyses: compare2016 feature set
@@ -498,7 +465,7 @@ bmgrid_study1 = benchmark_grid(
   resampling = repeated_cv
 )
 
-future::plan("multisession", workers = 5) # enable parallelization
+future::plan("multisession", workers = 10) # enable parallelization
 
 bmr_study1 = benchmark(bmgrid_study1, store_models = F, store_backends = F) # execute the benchmark
 
@@ -535,7 +502,7 @@ progressr::handlers("progress")
 ## momentary affect experience
 
 bmgrid_study2 = benchmark_grid(
-  task = c(egemaps_arousal_study2,
+  task = c(egemaps_arousal_study2, # main analyses: voice
            egemaps_content_study2,
            egemaps_sad_study2, 
            egemaps_arousal_diff_study2,  # supplementary analyses: affect fluctuation
@@ -544,10 +511,10 @@ bmgrid_study2 = benchmark_grid(
            compare_arousal_study2, # supplementary analyses: compare2016 feature set
            compare_content_study2,
            compare_sad_study2,
-           wordembeddings_arousal, # wordembeddings only
+           wordembeddings_arousal, # main analses: semantic content (wordembeddings)
            wordembeddings_content,
            wordembeddings_sad, 
-           egemaps_wordembeddings_arousal, # wordembeddings and voice combined
+           egemaps_wordembeddings_arousal, # supplementary analyses: wordembeddings and voice combined
            egemaps_wordembeddings_content,
            egemaps_wordembeddings_sad
            ),
@@ -607,7 +574,6 @@ md_mae$aggregator = function(x) median(x, na.rm = TRUE)
 mes = c(md_rho, md_rsq, md_rmse, md_mae) # set performance measures
 
 # study 1
-
 bmr_study1$aggregate(mes)
 
 bmr_egemaps_gender_study1$aggregate(msr("classif.acc"))
