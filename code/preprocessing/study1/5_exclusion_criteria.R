@@ -5,13 +5,13 @@ library(tidyr)
 
 affect_voice_raw <- readRDS("data/study1/affect_voice_study1.rds") # load voice data
 
-changers = read.csv2("data/study1/Smartphonewechsel_20210219.csv") # load smartphone changers
+changers = read.csv2("data/study1/Smartphonewechsel_20220608.csv") # load smartphone changers
 
 ## create unified if mapping
 
 id_mapping <- changers %>%
   # Select relevant columns only 
-  select(NewId, p_0001_2, p_0001_3, p_0001_new) %>%
+  dplyr::select(NewId, p_0001_2, p_0001_3, p_0001_new) %>%
   # Convert from wide to long format
   pivot_longer(cols = starts_with("p_"),
                values_to = "old_id", 
@@ -19,147 +19,104 @@ id_mapping <- changers %>%
   # Drop NAs since these don't map to any old_id
   drop_na() %>%
   # Select only the new ID and old ID columns
-  select(new_id = NewId, old_id) %>%
+  dplyr::select(new_id = NewId, old_id) %>%
   # Ensure all mappings are unique
-  distinct()
+  dplyr::distinct()
 
 ## apply new id mapping
 
-affect_voice <- affect_voice_raw %>%
+affect_voice_changed <- affect_voice_raw %>%
   # Left join to add new_id where applicable
-  left_join(id_mapping, by = c("user_id" = "old_id")) %>%
+  dplyr::left_join(id_mapping, by = c("user_id" = "old_id")) %>%
   # Replace old user_id with new_id where available
-  mutate(user_id = coalesce(new_id, user_id)) %>%
+  dplyr::mutate(user_id = coalesce(new_id, user_id)) %>%
   # Drop the temporary new_id column
-  select(-new_id)
+  dplyr::select(-new_id)
 
 # save data
-saveRDS(affect_voice, "data/study1/affect_voice_changed.rds") # save voice data
+saveRDS(affect_voice_changed, "data/study1/affect_voice_changed.rds") # save voice data
 
-### FILTED DATA BASED ON AFFECT DATA USER LEVEL) ####
+### FILTED DATA BASED ON AFFECT DATA (USER LEVEL) ####
 
 # read data
-affect_voice <- readRDS("data/study1/affect_voice_changed.rds") # load voice data
+affect_voice_changed <- readRDS("data/study1/affect_voice_changed.rds") # load voice data
 
-## remove participants with less than 10 experience sampling instances
+## remove participants with less than 10 voice samples (one per condition) and corresponding experience sampling instances
 
-# count how many es instances with valence and arousal ratings are available per participant
-count_es_user <- affect_voice %>% 
-  dplyr::group_by(user_id, e_s_questionnaire_id) %>% 
-  dplyr::count(sort =T)
-
-count_es_user <- affect_voice %>% 
+# count how many voice samples with valence and arousal ratings are available per participant
+count_voice_user <- affect_voice_changed %>% 
   dplyr::group_by(user_id) %>% 
-  dplyr::summarize(count = n_distinct(e_s_questionnaire_id)) %>% 
+  dplyr::summarize(count = n()) %>% 
   dplyr::arrange(desc(count))
 
+# count participants with less than 10 voice samples (158 participants)
+length(which(count_voice_user$count < 10))
 
-# find participants with less than 10 es instances
-length(which(count_es_user$count < 10))
-
-# find participants with at least 5 es days
-enoughes_user <- count_es_user[ count_es_user$n >=10, "user_id"]
-
-enoughes_user <- pull(enoughes_user) # format
-
-affect_voice <- affect_voice[ affect_voice$user_id %in% enoughes_user ,] #remove participants with less than 10 es instances
+# Filter the affect_voice data frame participants with at least 10 voice samples
+affect_voice_filtered <- affect_voice_changed %>%
+  dplyr::semi_join(count_voice_user %>% dplyr::filter(count >= 10), by = "user_id")
 
 # compute variance in valence and arousal responses per participant
-var_es_user <- affect_voice %>%
+var_es_user <- affect_voice_filtered %>%
   dplyr::group_by(user_id) %>%
+  dplyr::select(user_id, valence, arousal) %>%
   dplyr::mutate(var_valence = var(valence, na.rm = T), var_arousal = var(arousal, na.rm = T)) %>%
   dplyr::slice(1) #keep one row per user 
 
 # find participants with zero variance in their valence AND arousal responses across all their es (they were probably straightlining)
 length(which(var_es_user$var_valence == 0 & var_es_user$var_arousal == 0)) # 8 participants fall into the straightliner category
 
-# find participants with variance in their responses
-variancees_user <- var_es_user[ var_es_user$var_valence != 0  | var_es_user$var_arousal != 0, "user_id"]
+# remove those eight straightliners
 
-variancees_user <- pull(variancees_user) # format
-
-affect_voice <- affect_voice[ affect_voice$user_id %in% variancees_user ,] #remove straightliners
+affect_voice_filtered <- affect_voice_filtered %>%
+  group_by(user_id) %>%
+  filter(var(valence, na.rm = TRUE) != 0 | var(arousal, na.rm = TRUE) != 0) %>%
+  ungroup()
 
 ## supplementary analysis: compute affect baseline per participant
 
 # compute median valence and arousal per participant as baseline ("trait") score
 
-median_affect_user <- affect_voice  %>% 
+median_affect_user <- affect_voice_filtered  %>% 
   dplyr::group_by(user_id) %>%
   dplyr::mutate(md_valence = median(valence, na.rm =T), md_arousal = median(arousal, na.rm =T)) %>%
   dplyr::slice(1) #keep one row per user 
 
 # append median affect column to affect df
-affect_voice <- merge(affect_voice, median_affect_user[,c("user_id", "md_valence", "md_arousal")], by = "user_id")
+affect_voice_filtered <- merge(affect_voice_filtered, median_affect_user[,c("user_id", "md_valence", "md_arousal")], by = "user_id")
 
 # compute deviation of current affect from baseline for each participant
-affect_voice$diff_valence <- as.numeric(affect_voice$valence - affect_voice$md_valence)
-affect_voice$diff_arousal <- as.numeric(affect_voice$arousal - affect_voice$md_arousal)
+affect_voice_filtered$diff_valence <- as.numeric(affect_voice_filtered$valence - affect_voice_filtered$md_valence)
+affect_voice_filtered$diff_arousal <- as.numeric(affect_voice_filtered$arousal - affect_voice_filtered$md_arousal)
 
 # arrange cols
-affect_voice <- affect_voice  %>% 
+affect_voice_filtered <- affect_voice_filtered  %>% 
   dplyr::select(c("e_s_questionnaire_id", "questionnaireStartedTimestamp", "id", "user_id" , "Demo_A1", "Demo_GE1", "condition", "valence", "md_valence", "diff_valence", "arousal", "md_arousal", "diff_arousal"), everything())
 
 ### CLEAN DATA BASED ON VOICE INDICATORS (INSTANCE LEVEL) ####
 
-## find cases where participants did not record voice in their audio samples
+## find samples where participants did not record voice in their audio samples
 
-# there is a feature in the compare feature set that indicates the probability that human voice was recorded at all (values between 0 and 1)
-hist(affect_voice$voicingFinalUnclipped_sma_amean, breaks = 1000) #plot distribution 
-hist(affect_voice$VoicedSegmentsPerSec, breaks = 1000) #plot (normal distribution)
-hist(affect_voice$MeanVoicedSegmentLengthSec, breaks = 1000) #plot (normal distribution)
+hist(affect_voice_filtered$voicingFinalUnclipped_sma_amean, breaks = 1000) #plot distribution 
+hist(affect_voice_filtered$VoicedSegmentsPerSec, breaks = 1000) #plot (normal distribution)
+hist(affect_voice_filtered$MeanVoicedSegmentLengthSec, breaks = 1000) #plot (normal distribution)
 
 # remove all instances based on those features
+affect_voice_cleaned <- affect_voice_filtered %>%
+  dplyr::filter(
+    voicingFinalUnclipped_sma_amean >= 0.5 |
+      VoicedSegmentsPerSec > 0 |
+      MeanVoicedSegmentLengthSec > 0
+  )
 
-affect_voice_cleaned  <- affect_voice %>% 
-  dplyr::filter(voicingFinalUnclipped_sma_amean >= 0.5) %>%
-  dplyr::filter(VoicedSegmentsPerSec >0) %>%
-  dplyr::filter(MeanVoicedSegmentLengthSec >0)
+# investigate excluded samples
+removed_cases <- anti_join(affect_voice_filtered, affect_voice_cleaned)
 
-# Finding user_ids that are excluded by the filter
-excluded_user_ids <- setdiff(affect_voice$user_id, affect_voice_cleaned$user_id)
+nrow(removed_cases) # number of removed cases 
+length(unique(removed_cases$user_id)) # number of user_ids of removed cases
 
-# details of excluded users
-excluded_users_details <- affect_voice %>%
-  filter(user_id %in% excluded_user_ids)
-
-# # investigate descriptives of instances without voice
-# 
-# length(unique(compare_feature_df_novoice$e_s_questionnaire_id)) # the no voice records come from 1908 ES instances
-# length(unique(compare_feature_df_novoice$user_id)) # the no voice records come from 514 participants
-# 
-# # count no voice records per participant
-# novoice_user <- compare_feature_df_novoice %>% 
-#   group_by(user_id) %>% 
-#   count(sort =T, name = "n_novoice")
-# 
-# # count voice records per participant
-# voice_user <- compare_feature_df_voice %>% 
-#   group_by(user_id) %>% 
-#   count(sort =T, name = "n_voice")
-# 
-# # merge and compute share of voice containing records in all records
-# voiceshare_user = merge(voice_user, novoice_user)
-# 
-# voiceshare_user$n_total = voiceshare_user$n_voice + voiceshare_user$n_novoice
-# voiceshare_user$voice_share = voiceshare_user$n_voice / voiceshare_user$n_total
-# 
-# hist(voiceshare_user$voice_share, breaks = 10)
-# 
-# table(no_voice$condition) # no meaningful differences across sentence conditions
-# 
-# no_voice_id <- compare_feature_df_novoice$id # get ids of no voice records
-# 
-# # removes no voice instances from voice and compare feature sets
-# 
-# `%!in%` <- Negate(`%in%`)
-# 
-# voice_feature_df_cleaned <- voice_feature_df_rec %>% 
-#   filter(id %!in% no_voice_id )
-
-# save cleaned dfs
+# save cleaned df
 saveRDS(affect_voice_cleaned, "data/study1/affect_voice_study1_cleaned.rds")
-
 
 ### DESCRIPTIVES OF FINAL DATA ####
 
