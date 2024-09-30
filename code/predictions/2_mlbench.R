@@ -635,7 +635,7 @@ bmr_results_folds_study1_plot <- bmr_results_folds_study1_plot  %>%
   mutate(learner_id = case_when(
     learner_id == "regr.featureless" ~    "Baseline",
     learner_id == "imputeoor.regr.ranger" ~ "Random Forest",
-    learner_id == "imputehist.regr.cv_glmnet" ~ "LASSO")) %>% 
+    learner_id == "imputehist.regr.cv_glmnet" ~ "Elastic Net")) %>% 
   mutate(feature_set = case_when(
     task_id == "egemaps_valence" ~    "Voice Acoustics",
     task_id == "egemaps_arousal" ~    "Voice Acoustics")) %>% 
@@ -652,7 +652,7 @@ bmr_results_folds_study2_plot <- bmr_results_folds_study2_plot %>%
   mutate(learner_id = case_when(
     learner_id == "regr.featureless" ~    "Baseline",
     learner_id == "imputeoor.regr.ranger" ~ "Random Forest",
-    learner_id == "imputehist.regr.cv_glmnet" ~ "LASSO")) %>% 
+    learner_id == "imputehist.regr.cv_glmnet" ~ "Elastic Net")) %>% 
   mutate(feature_set = case_when(
     task_id == "egemaps_content" ~    "Voice Acoustics",
     task_id == "egemaps_sad" ~    "Voice Acoustics",
@@ -661,16 +661,34 @@ bmr_results_folds_study2_plot <- bmr_results_folds_study2_plot %>%
     task_id == "wordembeddings_sad" ~    "Word Embeddings",
     task_id == "wordembeddings_arousal" ~ "Word Embeddings")) %>% 
   mutate(task_id = case_when(
-    task_id == "egemaps_content" ~    "Contentedness",
+    task_id == "egemaps_content" ~    "Contentment",
     task_id == "egemaps_sad" ~    "Sadness",
     task_id == "egemaps_arousal" ~ "Arousal",
-    task_id == "wordembeddings_content" ~    "Contentedness",
+    task_id == "wordembeddings_content" ~    "Contentment",
     task_id == "wordembeddings_sad" ~    "Sadness",
     task_id == "wordembeddings_arousal" ~ "Arousal")) %>% 
-  mutate(regr.srho = if_else(learner_id == "LASSO" & is.na(regr.srho), 0, regr.srho)) # replace NA with zero for LASSO 
+  mutate(regr.srho = if_else(learner_id == "Elastic Net" & is.na(regr.srho), 0, regr.srho)) # replace NA with zero for EN
 
 # rbind both studies
 bmr_results_folds <- rbind(bmr_results_folds_study1_plot, bmr_results_folds_study2_plot)
+
+# find combinations of task, learner, and study
+existing_combinations <- unique(interaction(bmr_results_folds$task_id, bmr_results_folds$feature_set, bmr_results_folds$study))
+
+# Define only the combinations that exist in the data
+correct_levels <- rev(c(
+  "Valence.Voice Acoustics.study1",
+  "Arousal.Voice Acoustics.study1",
+  "Contentment.Voice Acoustics.study2",
+  "Sadness.Voice Acoustics.study2",
+  "Arousal.Voice Acoustics.study2",
+  "Contentment.Word Embeddings.study2",
+  "Sadness.Word Embeddings.study2",
+  "Arousal.Word Embeddings.study2"
+))
+
+# Keep only the levels that exist in the data
+correct_levels <- correct_levels[correct_levels %in% existing_combinations]
 
 # create four figures with main results - two columns for performance measures and separated by study (study 1 on top then study 2 below), Pearson r on the left and r2 on the right, sign pred in bold
 
@@ -680,21 +698,12 @@ bmr_plot_srho <-
     aes(
       x = factor(
         interaction(task_id, feature_set, study),
-        levels = rev(c( # order factor
-          "Valence.Voice Acoustics.study1",
-          "Arousal.Voice Acoustics.study1",
-          "Contentedness.Voice Acoustics.study2",
-          "Sadness.Voice Acoustics.study2",
-          "Arousal.Voice Acoustics.study2",
-          "Contentedness.Word Embeddings.study2",
-          "Sadness.Word Embeddings.study2",
-          "Arousal.Word Embeddings.study2"
-        )
-        )) ,
+        levels = correct_levels,
+        ) ,
       y = regr.srho,
-      color = learner_id,
-      shape = learner_id)
-  ) +
+      color = learner_id
+      #shape = learner_id)
+  )) +
   geom_boxplot(
     width = 0.3,
     lwd = 1,
@@ -702,23 +711,23 @@ bmr_plot_srho <-
     alpha = 0.3,
     position = position_dodge(0.5)
   ) +
-  geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5),
-             size = 3, alpha = 0.5) +
+  # geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5),
+  #            size = 3, alpha = 0.25) +
   scale_x_discrete(
     element_blank(),
     labels = rev(c(
       "Valence (Prosody)",
       "**Arousal (Prosody)**",
-      "**Contentedness (Prosody)**",
+      "**Contentment (Prosody)**",
       "Sadness (Prosody)",
       "**Arousal (Prosody)**",
-      "**Contentedness (Semantics)**",
+      "**Contentment (Semantics)**",
       "**Sadness (Semantics)**",
       "**Arousal (Semantics)**"
     )
     )) +  
-  scale_color_manual(values = c("#a6cee3", "#1f78b4", "#b2df8a"), name = "Algorithm") +
-  scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
+  scale_color_manual(values = c("#a6cee3", "#1f78b4"), name = "Algorithm", labels = c("Elastic Net", "Random Forest")) +
+  #scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
   scale_y_continuous(name = bquote("Spearman correlation (r)"), limits = c(-0.1, 0.5)) +
   geom_hline(yintercept = 0, linetype = 'dotted') +
   theme_minimal(base_size = 25) +
@@ -730,7 +739,7 @@ bmr_plot_srho <-
   theme(axis.text.x = element_markdown(), 
         axis.text.y = element_markdown(hjust = 0),
         legend.position = "top", 
-        legend.key.size = unit(0.5, "cm"))
+        legend.key.size = unit(1.5, "cm"))
 
 
 # plot rsq
@@ -738,20 +747,11 @@ bmr_plot_rsq <-
   ggplot(bmr_results_folds, aes(
     x = factor(
       interaction(task_id, feature_set, study),
-      levels = rev(c(
-        "Valence.Voice Acoustics.study1",
-        "Arousal.Voice Acoustics.study1",
-        "Contentedness.Voice Acoustics.study2",
-        "Sadness.Voice Acoustics.study2",
-        "Arousal.Voice Acoustics.study2",
-        "Contentedness.Word Embeddings.study2",
-        "Sadness.Word Embeddings.study2",
-        "Arousal.Word Embeddings.study2"
-      ))
+      levels = correct_levels
     ),
     y = regr.rsq,
-    color = learner_id,
-    shape = learner_id # This maps both color and shape to learner_id
+    color = learner_id
+    #shape = learner_id # This maps both color and shape to learner_id
   )) +
   geom_boxplot(
     width = 0.3,
@@ -760,10 +760,10 @@ bmr_plot_rsq <-
     alpha = 0.3,
     position = position_dodge(0.5)
   ) +
-  geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5), size = 3, alpha = 0.5) +
-  scale_color_manual(values = c("#a6cee3", "#1f78b4", "#b2df8a"), name = "Algorithm") +
-  scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
-  scale_y_continuous(name = bquote(paste("R" ^ 2)), limits = c(-0.15, 0.15)) +
+  #geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5), size = 3, alpha = 0.5) +
+  scale_color_manual(values = c("#b2df8a", "#a6cee3", "#1f78b4" ), name = "Algorithm", labels = c("Baseline", "Elastic Net", "Random Forest")) +
+  #scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
+  scale_y_continuous(name = bquote(paste(italic(R) ^ 2)), limits = c(-0.15, 0.15)) +
   geom_hline(yintercept = 0, linetype = 'dotted') +
   theme_minimal(base_size = 25) +
   labs(colour = "Algorithm") +
@@ -773,7 +773,7 @@ bmr_plot_rsq <-
   theme(legend.position = "top", 
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
-        legend.key.size = unit(0.5, "cm"))
+        legend.key.size = unit(1.5, "cm"))
 
 # use patchwork to combine plots for spearman r and rsq into one figure
 
@@ -789,18 +789,17 @@ get_legend <- function(myplot) {
 # Extract the legend
 legend <- get_legend(bmr_plot_rsq)
 
-legend2 <- get_legend(bmr_plot_srho)
-
 bmr_plot_srho <- bmr_plot_srho + theme(legend.position = "none") # remove legend 
 
 bmr_plot_rsq <- bmr_plot_rsq + theme(legend.position = "none") # remove legend 
 
 # arrange plots
-bmr_plot <- bmr_plot_srho + bmr_plot_rsq + plot_layout(guides = "collect") & theme(legend.position = "top")
+bmr_plot  <- (wrap_elements(full = legend) / (bmr_plot_srho + bmr_plot_rsq)) + 
+  plot_layout(heights = c(1, 10)) # Adjust heights as needed
 
 # save figure
 
-png(file="figures/bmr_plot.png",width=1500, height=1500)
+png(file="figures/bmr_plot.png",width=1000, height=1000)
 
 bmr_plot
 
