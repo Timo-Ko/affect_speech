@@ -12,7 +12,7 @@ lapply(packages, library, character.only = TRUE)
 affect_voice_study1 <- readRDS(file="data/study1/affect_voice_study1_cleaned.rds") 
 
 # study 2
-affect_voice_wordembeddings_study2 <- readRDS(file="data/study2/affect_voice_wordembeddings.rds") 
+affect_voice_study2_cleaned <- readRDS(file="data/study2/affect_voice_study2_cleaned.rds") 
 
 ### COMPUTE VOICE X AFFECT CORRS ####
 
@@ -25,10 +25,10 @@ cor_voice_affect_study1_all <- psych::corr.test(affect_voice_study1[,c(which(col
                                             method = "pearson")
 
 
-cor_voice_affect_study2_all <- psych::corr.test(affect_voice_wordembeddings_study2[,c(which(colnames(affect_voice_wordembeddings_study2)=="content"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)=="sad"),
-                                                         which(colnames(affect_voice_wordembeddings_study2)=="arousal"), 
-                                                         which(colnames(affect_voice_wordembeddings_study2)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_wordembeddings_study2)=="equivalentSoundLevel_dBp"))],  
+cor_voice_affect_study2_all <- psych::corr.test(affect_voice_study2_cleaned[,c(which(colnames(affect_voice_study2_cleaned)=="content"), 
+                                                         which(colnames(affect_voice_study2_cleaned)=="sad"),
+                                                         which(colnames(affect_voice_study2_cleaned)=="arousal"), 
+                                                         which(colnames(affect_voice_study2_cleaned)=="F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study2_cleaned)=="equivalentSoundLevel_dBp"))],  
                                        use="pairwise.complete.obs", 
                                        method = "pearson")
 
