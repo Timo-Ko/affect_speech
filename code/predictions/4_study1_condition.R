@@ -5,42 +5,28 @@ install.packages(setdiff(packages, rownames(installed.packages())))
 lapply(packages, library, character.only = TRUE)
 
 # read in benchmark results
-bmr_egemaps <- readRDS("results/study1/bmr_egemaps_study1.rds")
+bmr_egemaps <- readRDS("results/study1/bmr_study1.rds")
 
 # load data
-affect_voice_study1 <- readRDS("data/study1/affect_voice_study1.rds")
+affect_voice_study1 <- readRDS("data/study1/affect_voice_study1_cleaned.rds")
 
 # remove illegal characters from colnames 
 colnames(affect_voice_study1) <- make.names(colnames(affect_voice_study1), unique = TRUE)
 
-####  DESCRIPTIVE DIFFERENCES IN VOICE FEATURES AMONG SENTENCE CONDITION ####
+####  DESCRIPTIVE DIFFERENCES IN VOICE FEATURES AMONG THREE SENTENCE CONDITIONS ####
 
 egemaps_features <- colnames(affect_voice_study1)[which(colnames(affect_voice_study1) == "F0semitoneFrom27.5Hz_sma3nz_amean"):which(colnames(affect_voice_study1) == "equivalentSoundLevel_dBp")]
 
 # Calculate the average values for each feature across the three conditions
-avg_values_condition <- affect_voice_study1 %>%
+voice_by_condition <- affect_voice_study1 %>%
   select(condition, all_of(egemaps_features)) %>%
   group_by(condition) %>%
   summarize(across(everything(), mean, na.rm = TRUE)) %>%
   pivot_longer(cols = -condition, names_to = "feature", values_to = "value") %>%
   pivot_wider(names_from = condition, values_from = value)
 
-# # Function to perform ANOVA and get p-value
-# get_anova_p_value <- function(feature) {
-#   formula <- as.formula(paste(feature, "~ condition"))
-#   model <- aov(formula, data = affect_voice_study1)
-#   tidy(model)$p.value[1] # Extract the p-value for the condition effect
-# }
-# 
-# # Add a column for ANOVA significance
-# avg_values_condition <- avg_values_condition %>%
-#   rowwise() %>%
-#   mutate(p_value = get_anova_p_value(feature),
-#          significant = p_value < 0.05) %>%
-#   ungroup()
-
 # save results 
-write.csv(avg_values_condition, "results/avg_values_condition_study1.csv")
+write.csv2(voice_by_condition, "results/study1/voice_by_condition.csv")
 
 ####  CONTENT SENTIMENT EFFECTS ON VOICE PREDICTIONS ####
 
@@ -48,7 +34,7 @@ write.csv(avg_values_condition, "results/avg_values_condition_study1.csv")
 
 aggr = bmr_egemaps$aggregate(msrs("regr.mae")) # get aggr performance
 
-## get valence predictions 
+## get valence en predictions 
 rr_valence = aggr$resample_result[[3]]
 predictions_valence <- as.data.table(rr_valence$prediction())
 predictions_valence$target_1 <- as.factor("valence")
@@ -57,7 +43,7 @@ predictions_valence$target_1 <- as.factor("valence")
 colnames(predictions_valence)[colnames(predictions_valence) == 'truth'] <- 'truth_valence'
 colnames(predictions_valence)[colnames(predictions_valence) == 'response'] <- 'response_valence'
 
-## get arousal predictions 
+## get arousal en predictions 
 rr_arousal = aggr$resample_result[[6]]
 predictions_arousal <- as.data.table(rr_arousal$prediction())
 predictions_arousal$target_2 <- as.factor("arousal")
@@ -67,7 +53,7 @@ colnames(predictions_arousal)[colnames(predictions_arousal) == 'truth'] <- 'trut
 colnames(predictions_arousal)[colnames(predictions_arousal) == 'response'] <- 'response_arousal'
 
 # append sentence conditions 
-predictions_condition <- cbind(predictions_valence, predictions_arousal, affect_egemaps$condition)
+predictions_condition <- cbind(predictions_valence, predictions_arousal, affect_voice_study1$condition)
 
 # rename column
 colnames(predictions_condition)[colnames(predictions_condition) == 'V3'] <- 'condition'
@@ -110,10 +96,21 @@ predictions_condition_plot <- ggplot(predictions_condition_long, aes(x= conditio
 
 # save plot
 
-png(file="figures/predictions_condition_study1_plot.png",width=1000, height=700)
+png(file="figures/prediction_error_en_condition_study1_plot.png",width=1000, height=700)
 
 predictions_condition_plot
 
 dev.off()
+
+# run F Test to compare prediction errors 
+
+library(car)
+
+# run anova comparing means for valence 
+aov_valence <- car::Anova(aov(error_valence ~ condition, data = predictions_condition))
+
+# run anova comparing means for arousal
+aov_arousal <- car::Anova(aov(error_arousal ~ condition, data = predictions_condition))
+
 
 ## FINISH
