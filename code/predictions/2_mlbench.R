@@ -583,7 +583,7 @@ bmr_study2$aggregate(mes)
 
 bmr_egemaps_gender_study2$aggregate(msr("classif.acc"))
 
-## deep dive: retrieve benchmark results across tasks and learners for single cv folds (this is needed for barplots)
+## deep dive: retrieve benchmark results across tasks and learners for single cv folds
 
 # study 1
 bmr_results_folds_study1 <- extract_bmr_results(bmr_study1, mes)
@@ -599,6 +599,32 @@ pred_table_study2 <- results_table(affect_voice_wordembeddings_study2, bmr_resul
 # save prediction tables
 write.csv2(pred_table_study1, "results/pred_table_study1.csv")
 write.csv2(pred_table_study2, "results/pred_table_study2.csv")
+
+### run significance tests
+
+# prosody vs chance (study1 + study2)
+
+perform_sign_test(bmr_results_folds_study1, "egemaps_valence", "egemaps_valence", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_study1)) 
+perform_sign_test(bmr_results_folds_study1, "egemaps_valence", "egemaps_valence", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_study1)) 
+perform_sign_test(bmr_results_folds_study1, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_study1)) 
+perform_sign_test(bmr_results_folds_study1, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_study1)) 
+
+perform_sign_test(bmr_results_folds_study2, "egemaps_content", "egemaps_content", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_content", "egemaps_content", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "egemaps_sad", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "egemaps_sad", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
+
+# semantics vs prosody (study2)
+perform_sign_test(bmr_results_folds_study2, "wordembeddings_content", "egemaps_content", "imputehist.regr.cv_glmnet", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "wordembeddings_content", "egemaps_content", "imputeoor.regr.ranger", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
+perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
+
+
 
 # correct p values for multiple comparison for main analyses 
 p_adj <- p.adjust(c(
@@ -620,6 +646,9 @@ p_adj <- p.adjust(c(
   pred_table_study2[pred_table_study2$task_id == "wordembeddings_arousal" & pred_table_study2$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"] 
   ),
   method = "holm")
+
+
+## create plots
 
 # subset relevant tasks for plotting 
 bmr_results_folds_study1_plot <- bmr_results_folds_study1 %>% filter(task_id %in% c("egemaps_valence", "egemaps_arousal")) # only keep relevant main tasks 
@@ -711,8 +740,6 @@ bmr_plot_srho <-
     alpha = 0.3,
     position = position_dodge(0.5)
   ) +
-  # geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5),
-  #            size = 3, alpha = 0.25) +
   scale_x_discrete(
     element_blank(),
     labels = rev(c(
@@ -727,7 +754,6 @@ bmr_plot_srho <-
     )
     )) +  
   scale_color_manual(values = c("#a6cee3", "#1f78b4"), name = "Algorithm", labels = c("Elastic Net", "Random Forest")) +
-  #scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
   scale_y_continuous(name = bquote("Spearman correlation (r)"), limits = c(-0.1, 0.5)) +
   geom_hline(yintercept = 0, linetype = 'dotted') +
   theme_minimal(base_size = 25) +
@@ -741,7 +767,6 @@ bmr_plot_srho <-
         legend.position = "top", 
         legend.key.size = unit(1.5, "cm"))
 
-
 # plot rsq
 bmr_plot_rsq <-
   ggplot(bmr_results_folds, aes(
@@ -751,7 +776,6 @@ bmr_plot_rsq <-
     ),
     y = regr.rsq,
     color = learner_id
-    #shape = learner_id # This maps both color and shape to learner_id
   )) +
   geom_boxplot(
     width = 0.3,
@@ -760,9 +784,7 @@ bmr_plot_rsq <-
     alpha = 0.3,
     position = position_dodge(0.5)
   ) +
-  #geom_point(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5), size = 3, alpha = 0.5) +
   scale_color_manual(values = c("#b2df8a", "#a6cee3", "#1f78b4" ), name = "Algorithm", labels = c("Baseline", "Elastic Net", "Random Forest")) +
-  #scale_shape_manual(values = c(16, 17, 18), name = "Algorithm") +
   scale_y_continuous(name = bquote(paste(italic(R) ^ 2)), limits = c(-0.15, 0.15)) +
   geom_hline(yintercept = 0, linetype = 'dotted') +
   theme_minimal(base_size = 25) +
