@@ -596,57 +596,19 @@ pred_table_study1 <- results_table(affect_voice_study1, bmr_results_folds_study1
 
 pred_table_study2 <- results_table(affect_voice_wordembeddings_study2, bmr_results_folds_study2)
 
+# correct p values for multiple comparison for main analyses 
+combined_p_values <- c(pred_table_study1$p_rsq, pred_table_study2$p_rsq)
+
+# Apply Holm correction
+adjusted_p_values <- p.adjust(combined_p_values, method = "holm")
+
+# Split the adjusted p-values back into their respective tables
+pred_table_study1$p_adj <- adjusted_p_values[1:nrow(pred_table_study1)]
+pred_table_study2$p_adj <- adjusted_p_values[(nrow(pred_table_study1) + 1):length(adjusted_p_values)]
+
 # save prediction tables
 write.csv2(pred_table_study1, "results/pred_table_study1.csv")
 write.csv2(pred_table_study2, "results/pred_table_study2.csv")
-
-### run significance tests
-
-# prosody vs chance (study1 + study2)
-
-perform_sign_test(bmr_results_folds_study1, "egemaps_valence", "egemaps_valence", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_study1)) 
-perform_sign_test(bmr_results_folds_study1, "egemaps_valence", "egemaps_valence", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_study1)) 
-perform_sign_test(bmr_results_folds_study1, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_study1)) 
-perform_sign_test(bmr_results_folds_study1, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_study1)) 
-
-perform_sign_test(bmr_results_folds_study2, "egemaps_content", "egemaps_content", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_content", "egemaps_content", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "egemaps_sad", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "egemaps_sad", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "egemaps_arousal", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
-
-# semantics vs prosody (study2)
-perform_sign_test(bmr_results_folds_study2, "wordembeddings_content", "egemaps_content", "imputehist.regr.cv_glmnet", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "wordembeddings_content", "egemaps_content", "imputeoor.regr.ranger", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_sad", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "regr.featureless", "imputehist.regr.cv_glmnet", nrow(affect_voice_wordembeddings_study2)) 
-perform_sign_test(bmr_results_folds_study2, "egemaps_arousal", "regr.featureless", "imputeoor.regr.ranger", nrow(affect_voice_wordembeddings_study2)) 
-
-
-
-# correct p values for multiple comparison for main analyses 
-p_adj <- p.adjust(c(
-  pred_table_study1[pred_table_study1$task_id == "egemaps_valence" & pred_table_study1$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study1[pred_table_study1$task_id == "egemaps_arousal" & pred_table_study1$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study1[pred_table_study1$task_id == "egemaps_valence" & pred_table_study1$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"],
-  pred_table_study1[pred_table_study1$task_id == "egemaps_arousal" & pred_table_study1$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "egemaps_content" & pred_table_study2$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "egemaps_sad" & pred_table_study2$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "egemaps_arousal" & pred_table_study2$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "egemaps_content" & pred_table_study2$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "egemaps_sad" & pred_table_study2$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "egemaps_arousal" & pred_table_study2$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "wordembeddings_content" & pred_table_study2$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "wordembeddings_sad" & pred_table_study2$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "wordembeddings_arousal" & pred_table_study2$learner_id == "imputeoor.regr.ranger", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "wordembeddings_content" & pred_table_study2$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "wordembeddings_sad" & pred_table_study2$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"],
-  pred_table_study2[pred_table_study2$task_id == "wordembeddings_arousal" & pred_table_study2$learner_id == "imputehist.regr.cv_glmnet", "p_rsq"] 
-  ),
-  method = "holm")
-
 
 ## create plots
 
