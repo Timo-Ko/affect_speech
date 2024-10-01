@@ -47,7 +47,7 @@ egemaps_arousal_study1 <- TaskRegr$new(
 ## supplementary predictions: predictions per sentence condition
 
 egemaps_valence_poscond_study1 <- TaskRegr$new(
-  id = "egemaps_valence",
+  id = "egemaps_poscond_valence",
   backend = affect_voice_study1 %>%
     filter(condition == "positive") %>%
     select(user_id, valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
@@ -55,7 +55,7 @@ egemaps_valence_poscond_study1 <- TaskRegr$new(
 )
 
 egemaps_valence_neucond_study1 <- TaskRegr$new(
-  id = "egemaps_valence", 
+  id = "egemaps_neucond_valence", 
   backend = affect_voice_study1 %>%
     filter(condition == "neutral") %>%
     select(user_id, valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
@@ -63,7 +63,7 @@ egemaps_valence_neucond_study1 <- TaskRegr$new(
 )
 
 egemaps_valence_negcond_study1 <- TaskRegr$new(
-  id = "egemaps_valence", 
+  id = "egemaps_negcond_valence", 
   backend = affect_voice_study1 %>%
     filter(condition == "negative") %>%
     select(user_id, valence, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
@@ -71,7 +71,7 @@ egemaps_valence_negcond_study1 <- TaskRegr$new(
 )
 
 egemaps_arousal_poscond_study1 <- TaskRegr$new(
-  id = "egemaps_arousal",
+  id = "egemaps_poscond_arousal",
   backend = affect_voice_study1 %>%
     filter(condition == "positive") %>%
     select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
@@ -79,7 +79,7 @@ egemaps_arousal_poscond_study1 <- TaskRegr$new(
 )
 
 egemaps_arousal_neucond_study1 <- TaskRegr$new(
-  id = "egemaps_arousal", 
+  id = "egemaps_neucond_arousal", 
   backend = affect_voice_study1 %>%
     filter(condition == "neutral") %>%
     select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
@@ -87,7 +87,7 @@ egemaps_arousal_neucond_study1 <- TaskRegr$new(
 )
 
 egemaps_arousal_negcond_study1 <- TaskRegr$new(
-  id = "egemaps_arousal", 
+  id = "egemaps_negcond_arousal", 
   backend = affect_voice_study1 %>%
     filter(condition == "negative") %>%
     select(user_id, arousal, F0semitoneFrom27.5Hz_sma3nz_amean:equivalentSoundLevel_dBp),
@@ -431,7 +431,7 @@ po_impute_oor = po("imputeoor")   # out of range imputation
 
 # combine training with pre-processing
 lrn_rf_po = po_impute_oor %>>% lrn_rf
-lrn_en_po = po_impute_hist %>>% lrn_en
+lrn_rr_po = po_impute_hist %>>% lrn_en
 
 #### RESAMPLING ####
 
@@ -448,18 +448,11 @@ logger$set_threshold("warn")
 progressr::handlers(global = TRUE)
 progressr::handlers("progress")
 
-## momentary affect experience
+## main analyses
 
 bmgrid_study1 = benchmark_grid(
   task = list(egemaps_valence_study1,
-           egemaps_arousal_study1,
-           egemaps_valence_poscond_study1, # supplementary analyses: separate conditions
-           egemaps_valence_neucond_study1,
-           egemaps_valence_negcond_study1,
-           egemaps_valence_diff_study1, # supplementary analyses: affect fluctuation
-           egemaps_arousal_diff_study1,
-           compare_valence_study1, # supplementary analyses: compare2016 feature set
-           compare_arousal_study1
+              egemaps_arousal_study1
   ),
   learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = repeated_cv
@@ -471,11 +464,36 @@ bmr_study1 = benchmark(bmgrid_study1, store_models = F, store_backends = F) # ex
 
 saveRDS(bmr_study1, "results/study1/bmr_study1.rds") # save results
 
+## supplementary analyses
+
+bmgrid_study1_suppl = benchmark_grid(
+  task = list(egemaps_valence_poscond_study1, # supplementary analyses: separate conditions
+              egemaps_valence_neucond_study1,
+              egemaps_valence_negcond_study1,
+              egemaps_arousal_poscond_study1, 
+              egemaps_arousal_neucond_study1,
+              egemaps_arousal_negcond_study1,
+              egemaps_valence_diff_study1, # supplementary analyses: affect fluctuation
+              egemaps_arousal_diff_study1,
+              compare_valence_study1, # supplementary analyses: compare2016 feature set
+              compare_arousal_study1
+  ),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
+  resampling = repeated_cv
+)
+
+future::plan("multisession", workers = 10) # enable parallelization
+
+bmr_study1_suppl = benchmark(bmgrid_study1_suppl, store_models = F, store_backends = F) # execute the benchmark
+
+saveRDS(bmr_study1_suppl, "results/study1/bmr_study1_suppl.rds") # save results
+
+
 # supplementary prediction: gender
 
 # create classification learner 
 lrn_classif_rf_po = po_impute_oor  %>>% lrn("classif.ranger", num.trees =1000, predict_type = "prob")
-lrn_classif_rr_po = po_impute_hist  %>>% lrn("classif.cv_glmnet", predict_type = "prob")
+lrn_classif_rr_po = po_impute_hist  %>>% lrn("classif.cv_glmnet", alpha = 0.5, predict_type = "prob")
 
 bmgrid_egemaps_gender_study1 = benchmark_grid(
   task = c(egemaps_gender_study1),
@@ -499,25 +517,16 @@ logger$set_threshold("warn")
 progressr::handlers(global = TRUE)
 progressr::handlers("progress")
 
-## momentary affect experience
+## main analyses
 
 bmgrid_study2 = benchmark_grid(
   task = c(egemaps_arousal_study2, # main analyses: voice
            egemaps_content_study2,
            egemaps_sad_study2, 
-           egemaps_arousal_diff_study2,  # supplementary analyses: affect fluctuation
-           egemaps_content_diff_study2,
-           egemaps_sad_diff_study2,
-           compare_arousal_study2, # supplementary analyses: compare2016 feature set
-           compare_content_study2,
-           compare_sad_study2,
-           wordembeddings_arousal, # main analses: semantic content (wordembeddings)
+           wordembeddings_arousal, # main analyses: semantic content (wordembeddings)
            wordembeddings_content,
-           wordembeddings_sad, 
-           egemaps_wordembeddings_arousal, # supplementary analyses: wordembeddings and voice combined
-           egemaps_wordembeddings_content,
-           egemaps_wordembeddings_sad
-           ),
+           wordembeddings_sad
+  ),
   learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
   resampling = repeated_cv
 )
@@ -527,6 +536,29 @@ future::plan("multisession", workers = 10) # enable parallelization
 bmr_study2 = benchmark(bmgrid_study2, store_models = F, store_backends = F) # execute the benchmark
 
 saveRDS(bmr_study2, "results/study2/bmr_study2.rds") # save results
+
+# supplementary analyses
+
+bmgrid_study2_suppl = benchmark_grid(
+  task = c(egemaps_arousal_diff_study2,  # supplementary analyses: affect fluctuation
+           egemaps_content_diff_study2,
+           egemaps_sad_diff_study2,
+           compare_arousal_study2, # supplementary analyses: compare2016 feature set
+           compare_content_study2,
+           compare_sad_study2,
+           egemaps_wordembeddings_arousal, # supplementary analyses: wordembeddings and voice combined
+           egemaps_wordembeddings_content,
+           egemaps_wordembeddings_sad
+  ),
+  learner = list(lrn_fl, lrn_rf_po, lrn_rr_po),
+  resampling = repeated_cv
+)
+
+future::plan("multisession", workers = 5) # enable parallelization
+
+bmr_study2_suppl = benchmark(bmgrid_study2_suppl, store_models = F, store_backends = F) # execute the benchmark
+
+saveRDS(bmr_study2_suppl, "results/study2/bmr_study2_suppl.rds") # save results
 
 
 ## supplementary prediction: gender
