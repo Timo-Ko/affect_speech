@@ -11,9 +11,9 @@ extract_bmr_results = function(bmr, mes){
   
   for(i in 1:length(uni.task)){ #iterate through task ids
     
-    ## standard fl, lasso, rf
+    ## standard fl, elastic net, rf
     df_helper = as.data.frame(bmr$aggregate(mes)[learner_id == uni.learner[1]]$resample_result[[i]]$score(mes)) # fl
-    df_helper = rbind(df_helper, bmr$aggregate(mes)[learner_id == uni.learner[2]]$resample_result[[i]]$score(mes)) # lasso
+    df_helper = rbind(df_helper, bmr$aggregate(mes)[learner_id == uni.learner[2]]$resample_result[[i]]$score(mes)) # elastic net
     df_helper = rbind(df_helper, bmr$aggregate(mes)[learner_id == uni.learner[3]]$resample_result[[i]]$score(mes)) # rf
     
     df_results = rbind(df_results, df_helper)
@@ -45,8 +45,7 @@ results_table = function(data, bmr_results){
                              Md_rsq = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              SD_rsq = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              p_rsq = rep(NA, length(uni.tasks)*length(uni.learner)), 
-                             #p_corrected_rsq = rep(NA, length(uni.tasks)*length(uni.learner)),
-                             
+
                              Md_mae = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              SD_mae = rep(NA, length(uni.tasks)*length(uni.learner)), 
                              
@@ -80,15 +79,14 @@ results_table = function(data, bmr_results){
     results.table$Md_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = median(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = sd(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = sign_test_folds(df_test$regr.rsq[df_test$learner_id == uni.learner[[1]]], df_test$regr.rsq[df_test$learner_id == uni.learner[[2]]], n)
-    #results.table$p_corrected_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = p.adjust(c(results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]]), n = 2*length(uni.tasks), method = "holm")
-    
+
     results.table$Md_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = median(regr.mae, na.rm = TRUE)) %>% pull(value)
     results.table$SD_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = sd(regr.mae, na.rm = TRUE)) %>% pull(value)
     
     results.table$Md_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = median(regr.rmse, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rmse[results.table$task_id == uni.task & results.table$learner_id == uni.learner[2]] = df_test %>% dplyr::filter(learner_id == uni.learner[2]) %>% summarise(value = sd(regr.rmse, na.rm = TRUE)) %>% pull(value)
     
-    ### featureless vs Lasso 
+    ### featureless vs elastic net 
 
     results.table$Md_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = median(regr.srho, na.rm = TRUE)) %>% pull(value)
     results.table$SD_srho[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = sd(regr.srho, na.rm = TRUE)) %>% pull(value)
@@ -96,8 +94,7 @@ results_table = function(data, bmr_results){
     results.table$Md_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = median(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$SD_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = sd(regr.rsq, na.rm = TRUE)) %>% pull(value)
     results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = sign_test_folds(df_test$regr.rsq[df_test$learner_id == uni.learner[[1]]], df_test$regr.rsq[df_test$learner_id == uni.learner[[3]]], n)
-    #results.table$p_corrected_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = p.adjust(c(results.table$p_rsq[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]]), n = 2*length(uni.tasks), method = "holm")
-    
+
     results.table$Md_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = median(regr.mae, na.rm = TRUE)) %>% pull(value)
     results.table$SD_mae[results.table$task_id == uni.task & results.table$learner_id == uni.learner[3]] = df_test %>% dplyr::filter(learner_id == uni.learner[3]) %>% summarise(value = sd(regr.mae, na.rm = TRUE)) %>% pull(value)
     
@@ -108,6 +105,10 @@ results_table = function(data, bmr_results){
       }
   
   results.table[,3:ncol(results.table)] = apply(results.table[,3:ncol(results.table)], 2, function(x) round(x, 3)) # round results
+  
+  # Order the table by task_id
+  results.table <- results.table %>%
+    arrange(task_id)
   
   return(results.table)
 }
