@@ -4,7 +4,6 @@
 .README.Md
 *.docx
 .DS_Store
-*.csv
 
 **/data
 **/archive
