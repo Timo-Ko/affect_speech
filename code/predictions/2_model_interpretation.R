@@ -108,13 +108,6 @@ beta_summary_all <- all_betas_dt[
 
 beta_summary_all
 
-# (optional) write out combined table
-# fwrite(beta_summary_all, "results/beta_summary_all_modalities.csv")
-
-
-
-
-
 
 ### code for table 1 ####
 
@@ -124,19 +117,16 @@ library(purrr)
 library(tidyr)
 library(knitr)
 
-# --- data holders assumed ---
-# df   = your merged frame with targets + LIWC cols
-# liwc = your LIWC-only frame (for column names)
-
 # Targets
-targets <- c("content_num" = "Contentment",
-             "sad_num"     = "Sadness",
-             "energy_num"  = "Arousal")
+targets <- c("ema_content" = "Contentment",
+             "ema_sad"     = "Sadness",
+             "ema_energy"  = "Arousal")
 
 # LIWC columns (numeric, excluding audio_id if present)
-liwc_cols <- names(liwc)
-liwc_cols <- setdiff(liwc_cols, "audio_id")
-liwc_cols <- liwc_cols[vapply(df[liwc_cols], is.numeric, logical(1))]
+liwc_cols <- beta_summary_all %>%
+  filter(modality == "liwc") %>%
+  distinct(feature) %>%
+  pull(feature)
 
 # --- summarise betas for LIWC features per target (denominator = n_models) ---
 liwc_betas <- all_betas_dt %>%
@@ -144,23 +134,27 @@ liwc_betas <- all_betas_dt %>%
   dplyr::group_by(target, feature) %>%
   dplyr::summarise(
     mean_beta    = mean(beta),
-    sd_beta      = sd(beta),        # dispersion across all resample fits
+    q_low        = quantile(beta, 0.025, na.rm = TRUE),
+    q_high       = quantile(beta, 0.975, na.rm = TRUE),
     nonzero_cnt  = sum(beta != 0),
-    n_models     = dplyr::n(),      # <-- count how many fits contributed
+    n_models     = dplyr::n(),              # how many fits contributed
     nonzero_prop = nonzero_cnt / n_models,
     .groups = "drop"
   ) %>%
   dplyr::arrange(target, dplyr::desc(abs(mean_beta)))
 
-# --- Top-10 per target, beta string now uses the true denominator -------------
+# --- Top-10 per target, beta string now uses the 95% range -------------------
 liwc_top10 <- liwc_betas %>%
   dplyr::group_by(target) %>%
   dplyr::slice_max(order_by = abs(mean_beta), n = 10, with_ties = FALSE) %>%
   dplyr::ungroup() %>%
   dplyr::mutate(
-    beta_str = sprintf("%+.2f (SD=%.2f, sel=%d/%d)",
-                       mean_beta, sd_beta, nonzero_cnt, n_models)
+    beta_str = sprintf(
+      "%+.2f (95%% range=%.2f–%.2f, sel=%d/%d)",
+      mean_beta, q_low, q_high, nonzero_cnt, n_models
+    )
   )
+
 # --- reshape into wide table ---
 liwc_table_df <- liwc_top10 %>%
   group_by(target) %>%
@@ -194,13 +188,9 @@ library(ggplot2)
 library(patchwork)
 
 # 0) Features frame with targets, LIWC cols, and roberta_* dims
-features_df <- readRDS("data/audio_ema_features.rds")
+features_df <- readRDS("data/audio_ema_matched_cleaned.rds")
 
-liwc_cols <- unique(betas_liwc$feature) # get liwc col names
-
-# 2) betas_emb from your earlier summaries (all_betas_dt must exist)
-#    (You created all_betas_dt above from bmr_en)
-stopifnot(exists("all_betas_dt"))
+# 2) betas_emb 
 betas_emb <- all_betas_dt[
   grepl("^wordembeddings_", task_id) & grepl("^roberta_\\d+$", feature)
 ][
@@ -210,7 +200,6 @@ betas_emb <- all_betas_dt[
                      levels = c("arousal","content","sad"),
                      labels = c("Arousal","Contentment","Sadness"))
 ][]
-stopifnot(nrow(betas_emb) > 0)
 
 targets_order <- c("Arousal","Contentment","Sadness")
 
@@ -336,6 +325,7 @@ print(final_plot)
 ggsave("figures/embed_interpretability.png", final_plot,
        width = 12, height = 8, units = "in", dpi = 300)
 
+# finish
 
 
 
@@ -344,123 +334,119 @@ ggsave("figures/embed_interpretability.png", final_plot,
 
 
 
-
-
-
-
-
-### OLD CODE ####
-
-
-
-
-
-
-library(dplyr)
-library(stringr)
-library(glmnet)
-library(tidyr)
-library(purrr)
-library(ggplot2)
-library(forcats)
-
-df <- audio_ema_features  # your merged table (has targets, LIWC cols, roberta_*)
-
-# Identify columns
-roberta_cols <- grep("^roberta_\\d+$", names(df), value = TRUE)
-
-# Safer way to get LIWC cols: intersect with the original LIWC names you showed
-liwc_names_in_source <- setdiff(names(liwc), "audio_id")
-liwc_cols <- intersect(names(df), liwc_names_in_source)
-
-targets <- c("content_num","sad_num","energy_num")
-target_labels <- c(content_num = "Contentment", sad_num = "Sadness", energy_num = "Arousal")
-
-
-fit_en_betas <- function(X, y, alpha = 0.5) {
-  ok <- is.finite(y) & apply(X, 1, function(r) all(is.finite(r)))
-  Xz <- scale(as.matrix(X[ok, , drop = FALSE]))
-  yz <- scale(as.numeric(y[ok]))
-  
-  cv <- cv.glmnet(Xz, yz, family = "gaussian", alpha = alpha, standardize = FALSE)
-  lam <- if (!is.null(cv$lambda.1se)) cv$lambda.1se else cv$lambda.min
-  cm  <- as.matrix(coef(cv, s = lam))
-  
-  if (nrow(cm) < 2) return(tibble(feature = character(), beta = numeric()))
-  tibble(feature = rownames(cm)[-1], beta = as.numeric(cm[-1, 1]))
-}
-
-# LIWC betas per target
-betas_liwc <- map_dfr(targets, function(tgt) {
-  out <- fit_en_betas(df[, liwc_cols], df[[tgt]])
-  out %>% mutate(target = target_labels[[tgt]], family = "LIWC")
-})
-
-# Text-embedding betas per target
-betas_emb <- map_dfr(targets, function(tgt) {
-  out <- fit_en_betas(df[, roberta_cols], df[[tgt]])
-  out %>% mutate(target = target_labels[[tgt]], family = "Text embeddings")
-})
-
-top_k <- 12
-panelA <- betas_liwc %>%
-  group_by(target) %>%
-  slice_max(order_by = abs(beta), n = top_k, with_ties = FALSE) %>%
-  ungroup() %>%
-  mutate(feature = fct_reorder(feature, beta))
-
-gg_liwc <- ggplot(panelA, aes(x = feature, y = beta, fill = beta > 0)) +
-  geom_col() +
-  coord_flip() +
-  scale_fill_manual(values = c("TRUE" = "#377eb8", "FALSE" = "#e41a1c"), guide = "none") +
-  facet_wrap(~ target, ncol = 1, scales = "free_y") +
-  labs(x = NULL, y = "Standardized Elastic-Net coefficient (β)",
-       title = "LIWC predictors of momentary emotion (top |β|)") +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid.major.y = element_blank())
-
-# pick top embedding dims per target
-top_dims_per_target <- betas_emb %>%
-  group_by(target) %>%
-  slice_max(order_by = abs(beta), n = 5, with_ties = FALSE) %>%
-  ungroup() %>%
-  mutate(dim = feature) %>%
-  select(target, dim, beta)
-
-# compute Spearman correlations with LIWC
-corr_map <- map_dfr(seq_len(nrow(top_dims_per_target)), function(i) {
-  tgt  <- top_dims_per_target$target[i]
-  dimc <- top_dims_per_target$dim[i]
-  b    <- top_dims_per_target$beta[i]
-  
-  x <- df[[dimc]]
-  map_dfr(liwc_cols, function(lc) {
-    y <- df[[lc]]
-    ok <- is.finite(x) & is.finite(y)
-    if (sum(ok) < 20) return(NULL)
-    r <- suppressWarnings(cor(x[ok], y[ok], method = "spearman"))
-    tibble(target = tgt, dim = dimc, dim_beta = b, liwc = lc, rho = r)
-  })
-})
-
-# Keep strongest LIWC correlates per dim (absolute correlation)
-panelB <- corr_map %>%
-  group_by(target, dim) %>%
-  slice_max(order_by = abs(rho), n = 8, with_ties = FALSE) %>%
-  ungroup()
-
-gg_map <- ggplot(panelB, aes(x = dim, y = liwc, fill = rho)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "#e41a1c", mid = "white", high = "#377eb8", midpoint = 0,
-                       name = "Spearman ρ") +
-  facet_wrap(~ target, ncol = 1, scales = "free_y") +
-  labs(x = "Most predictive embedding dimensions",
-       y = "LIWC category",
-       title = "Interpreting embeddings via LIWC (correlations with top dimensions)") +
-  theme_minimal(base_size = 11) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        panel.grid = element_blank())
-
-library(patchwork)
-(gg_liwc | gg_map) +
-  plot_annotation(theme = theme(plot.title = element_text(hjust = 0)))
+# 
+# ### OLD CODE ####
+# 
+# 
+# 
+# 
+# 
+# 
+# library(dplyr)
+# library(stringr)
+# library(glmnet)
+# library(tidyr)
+# library(purrr)
+# library(ggplot2)
+# library(forcats)
+# 
+# df <- audio_ema_features  # your merged table (has targets, LIWC cols, roberta_*)
+# 
+# # Identify columns
+# roberta_cols <- grep("^roberta_\\d+$", names(df), value = TRUE)
+# 
+# # Safer way to get LIWC cols: intersect with the original LIWC names you showed
+# liwc_names_in_source <- setdiff(names(liwc), "audio_id")
+# liwc_cols <- intersect(names(df), liwc_names_in_source)
+# 
+# targets <- c("content_num","sad_num","energy_num")
+# target_labels <- c(content_num = "Contentment", sad_num = "Sadness", energy_num = "Arousal")
+# 
+# 
+# fit_en_betas <- function(X, y, alpha = 0.5) {
+#   ok <- is.finite(y) & apply(X, 1, function(r) all(is.finite(r)))
+#   Xz <- scale(as.matrix(X[ok, , drop = FALSE]))
+#   yz <- scale(as.numeric(y[ok]))
+#   
+#   cv <- cv.glmnet(Xz, yz, family = "gaussian", alpha = alpha, standardize = FALSE)
+#   lam <- if (!is.null(cv$lambda.1se)) cv$lambda.1se else cv$lambda.min
+#   cm  <- as.matrix(coef(cv, s = lam))
+#   
+#   if (nrow(cm) < 2) return(tibble(feature = character(), beta = numeric()))
+#   tibble(feature = rownames(cm)[-1], beta = as.numeric(cm[-1, 1]))
+# }
+# 
+# # LIWC betas per target
+# betas_liwc <- map_dfr(targets, function(tgt) {
+#   out <- fit_en_betas(df[, liwc_cols], df[[tgt]])
+#   out %>% mutate(target = target_labels[[tgt]], family = "LIWC")
+# })
+# 
+# # Text-embedding betas per target
+# betas_emb <- map_dfr(targets, function(tgt) {
+#   out <- fit_en_betas(df[, roberta_cols], df[[tgt]])
+#   out %>% mutate(target = target_labels[[tgt]], family = "Text embeddings")
+# })
+# 
+# top_k <- 12
+# panelA <- betas_liwc %>%
+#   group_by(target) %>%
+#   slice_max(order_by = abs(beta), n = top_k, with_ties = FALSE) %>%
+#   ungroup() %>%
+#   mutate(feature = fct_reorder(feature, beta))
+# 
+# gg_liwc <- ggplot(panelA, aes(x = feature, y = beta, fill = beta > 0)) +
+#   geom_col() +
+#   coord_flip() +
+#   scale_fill_manual(values = c("TRUE" = "#377eb8", "FALSE" = "#e41a1c"), guide = "none") +
+#   facet_wrap(~ target, ncol = 1, scales = "free_y") +
+#   labs(x = NULL, y = "Standardized Elastic-Net coefficient (β)",
+#        title = "LIWC predictors of momentary emotion (top |β|)") +
+#   theme_minimal(base_size = 11) +
+#   theme(panel.grid.major.y = element_blank())
+# 
+# # pick top embedding dims per target
+# top_dims_per_target <- betas_emb %>%
+#   group_by(target) %>%
+#   slice_max(order_by = abs(beta), n = 5, with_ties = FALSE) %>%
+#   ungroup() %>%
+#   mutate(dim = feature) %>%
+#   select(target, dim, beta)
+# 
+# # compute Spearman correlations with LIWC
+# corr_map <- map_dfr(seq_len(nrow(top_dims_per_target)), function(i) {
+#   tgt  <- top_dims_per_target$target[i]
+#   dimc <- top_dims_per_target$dim[i]
+#   b    <- top_dims_per_target$beta[i]
+#   
+#   x <- df[[dimc]]
+#   map_dfr(liwc_cols, function(lc) {
+#     y <- df[[lc]]
+#     ok <- is.finite(x) & is.finite(y)
+#     if (sum(ok) < 20) return(NULL)
+#     r <- suppressWarnings(cor(x[ok], y[ok], method = "spearman"))
+#     tibble(target = tgt, dim = dimc, dim_beta = b, liwc = lc, rho = r)
+#   })
+# })
+# 
+# # Keep strongest LIWC correlates per dim (absolute correlation)
+# panelB <- corr_map %>%
+#   group_by(target, dim) %>%
+#   slice_max(order_by = abs(rho), n = 8, with_ties = FALSE) %>%
+#   ungroup()
+# 
+# gg_map <- ggplot(panelB, aes(x = dim, y = liwc, fill = rho)) +
+#   geom_tile() +
+#   scale_fill_gradient2(low = "#e41a1c", mid = "white", high = "#377eb8", midpoint = 0,
+#                        name = "Spearman ρ") +
+#   facet_wrap(~ target, ncol = 1, scales = "free_y") +
+#   labs(x = "Most predictive embedding dimensions",
+#        y = "LIWC category",
+#        title = "Interpreting embeddings via LIWC (correlations with top dimensions)") +
+#   theme_minimal(base_size = 11) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+#         panel.grid = element_blank())
+# 
+# library(patchwork)
+# (gg_liwc | gg_map) +
+#   plot_annotation(theme = theme(plot.title = element_text(hjust = 0)))
