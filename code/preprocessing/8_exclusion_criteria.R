@@ -6,33 +6,8 @@ library(psych)
 ##  load the combined data  -------------------------------------------
 matched_df <- readRDS("data/audio_ema_matched.rds")
 
-
-# library(jsonlite)
-# library(dplyr)
-# library(stringr)
-# 
-# 
-# diarization <- fromJSON("data/diarization_per_file.json") %>%
-#   as_tibble() %>%
-#   mutate(
-#     timestamp = str_remove(file, "\\.mp4\\.json$"),
-#     participant_id = participant
-#   ) %>%
-#   select(participant_id, timestamp, num_speakers)
-# 
-# diarization <- diarization %>%
-#   mutate(
-#     timestamp = as.POSIXct(
-#       timestamp,
-#       format = "%Y-%m-%d_%H-%M-%S",
-#       tz = "UTC"
-#     )
-#   )
-# 
-# matched_df <- matched_df %>% left_join(., diarization, by = c("participant_id", "timestamp"))
-
 ## FILTER A  ─ ema within 10 mins available  ------------------------------
-filtered_time_df <- matched_df %>% 
+filtered_time_df <- audio_ema_matched_py %>% 
   filter(abs(time_diff)      <= 600)          # 10 mins
 
 # get some statistics for initial sample
@@ -65,7 +40,7 @@ audio_ema_matched_cleaned <- filtered_diarization_df  %>%
 
 
 ## save and quick report ---------------------------------------------
-saveRDS(audio_ema_matched_cleaned, "data/audio_ema_matched_cleaned.rds") # rds
+saveRDS(audio_ema_matched_cleaned, "data/audio_ema_matched_cleaned_new.rds") # rds
 
 cat("\nFinal data: ",
     n_distinct(audio_ema_matched_cleaned$participant_id), " participants, ",
@@ -100,7 +75,6 @@ mean_age <- audio_ema_matched_cleaned %>%
   summarise(mean_age = mean(Age, na.rm = TRUE))
 
 mean_age
-
 
 
 # emotion self-reports
