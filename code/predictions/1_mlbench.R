@@ -2,8 +2,8 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "ggtext", "mlr3", "mlr3verse", "mlr3learners", "mlr3pipelines","ranger", "glmnet", "future", "remotes", "bbotk", "patchwork")
-install.packages(setdiff(packages, rownames(installed.packages())))  
+packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "ggtext", "mlr3", "mlr3learners", "mlr3pipelines","ranger", "glmnet", "future", "remotes", "bbotk", "patchwork")
+#install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
 set.seed(123, kind = "L'Ecuyer") # set seed to make sure all results are reproducible
@@ -15,17 +15,10 @@ source("code/functions/plot_theme.R")
 
 ### READ IN DATA ####
 
-audio_ema_features <- readRDS("data/audio_ema_features.rds")
+audio_ema_features <- readRDS("data/audio_ema_matched_cleaned.rds")
 
 # remove illegal characters from colnames 
 colnames(audio_ema_features) <- make.names(colnames(audio_ema_features), unique = TRUE)
-
-# drop two observations where speech feature extraction failed
-
-audio_ema_features <- audio_ema_features %>%
-  filter(!is.na(wav2vec2_1), 
-         !is.na(egemaps__F0semitoneFrom27.5Hz_sma3nz_amean),
-         !is.na(roberta_1_masked)) # for now
 
 #### CREATE TASKS  ####
 
@@ -35,29 +28,28 @@ audio_ema_features <- audio_ema_features %>%
 wordembeddings_content <- TaskRegr$new(
   id = "wordembeddings_content",
   backend = audio_ema_features %>%
-    filter(!is.na(content_num)) %>%
-    select(participant_id, content_num, roberta_1:roberta_1024),
-  target = "content_num"
+    filter(!is.na(ema_content)) %>%
+    select(participant_id, ema_content, roberta_1:roberta_1024),
+  target = "ema_content"
 )
 
 # sadness
 wordembeddings_sad <- TaskRegr$new(
   id = "wordembeddings_sad",
   backend = audio_ema_features %>%
-    filter(!is.na(sad_num)) %>%
-    select(participant_id, sad_num, roberta_1:roberta_1024),
-  target = "sad_num"
+    filter(!is.na(ema_sad)) %>%
+    select(participant_id, ema_sad, roberta_1:roberta_1024),
+  target = "ema_sad"
 )
 
 # arousal
 wordembeddings_arousal <- TaskRegr$new(
   id = "wordembeddings_arousal",
   backend = audio_ema_features %>%
-    filter(!is.na(energy_num)) %>%
-    select(participant_id, energy_num, roberta_1:roberta_1024),
-  target = "energy_num"
+    filter(!is.na(ema_energy)) %>%
+    select(participant_id, ema_energy, roberta_1:roberta_1024),
+  target = "ema_energy"
 )
-
 
 
 ## TEXT EMBEDDINGS (MASKED) ---------------------------------------------
@@ -66,27 +58,27 @@ wordembeddings_arousal <- TaskRegr$new(
 wordembeddings_masked_content <- TaskRegr$new(
   id = "wordembeddings_masked_content",
   backend = audio_ema_features %>%
-    filter(!is.na(content_num)) %>%
-    select(participant_id, content_num, roberta_1_masked:roberta_1024_masked),
-  target = "content_num"
+    filter(!is.na(ema_content)) %>%
+    select(participant_id, ema_content, roberta_1_masked:roberta_1024_masked),
+  target = "ema_content"
 )
 
 # sadness
 wordembeddings_masked_sad <- TaskRegr$new(
   id = "wordembeddings_masked_sad",
   backend = audio_ema_features %>%
-    filter(!is.na(sad_num)) %>%
-    select(participant_id, sad_num, roberta_1_masked:roberta_1024_masked),
-  target = "sad_num"
+    filter(!is.na(ema_sad)) %>%
+    select(participant_id, ema_sad, roberta_1_masked:roberta_1024_masked),
+  target = "ema_sad"
 )
 
 # arousal
 wordembeddings_masked_arousal <- TaskRegr$new(
   id = "wordembeddings_masked_arousal",
   backend = audio_ema_features %>%
-    filter(!is.na(energy_num)) %>%
-    select(participant_id, energy_num, roberta_1_masked:roberta_1024_masked),
-  target = "energy_num"
+    filter(!is.na(ema_energy)) %>%
+    select(participant_id, ema_energy, roberta_1_masked:roberta_1024_masked),
+  target = "ema_energy"
 )
 
 
@@ -96,56 +88,27 @@ wordembeddings_masked_arousal <- TaskRegr$new(
 speechembeddings_content <- TaskRegr$new(
   id = "speechembeddings_content",
   backend = audio_ema_features %>%
-    filter(!is.na(content_num)) %>%
-    select(participant_id, content_num, wav2vec2_1:wav2vec2_1024),
-  target = "content_num"
+    filter(!is.na(ema_content)) %>%
+    select(participant_id, ema_content, wav2vec2_1:wav2vec2_1024),
+  target = "ema_content"
 )
 
 # sadness
 speechembeddings_sad <- TaskRegr$new(
   id = "speechembeddings_sad",
   backend = audio_ema_features %>%
-    filter(!is.na(sad_num)) %>%
-    select(participant_id, sad_num, wav2vec2_1:wav2vec2_1024),
-  target = "sad_num"
+    filter(!is.na(ema_sad)) %>%
+    select(participant_id, ema_sad, wav2vec2_1:wav2vec2_1024),
+  target = "ema_sad"
 )
 
 # arousal
 speechembeddings_arousal <- TaskRegr$new(
   id = "speechembeddings_arousal",
   backend = audio_ema_features %>%
-    filter(!is.na(energy_num)) %>%
-    select(participant_id, energy_num, wav2vec2_1:wav2vec2_1024),
-  target = "energy_num"
-)
-
-## SPEECH + WORD EMBEDDINGS ------------------------------------
-
-# contentment
-speech_wordembeddings_content <- TaskRegr$new(
-  id = "speech_wordembeddings_content",
-  backend = audio_ema_features %>%
-    filter(!is.na(content_num)) %>%
-    select(participant_id, content_num, wav2vec2_1:wav2vec2_1024, roberta_1:roberta_1024),
-  target = "content_num"
-)
-
-# sadness
-speech_wordembeddings_sad <- TaskRegr$new(
-  id = "speech_wordembeddings_sad",
-  backend = audio_ema_features %>%
-    filter(!is.na(sad_num)) %>%
-    select(participant_id, sad_num, wav2vec2_1:wav2vec2_1024, roberta_1:roberta_1024),
-  target = "sad_num"
-)
-
-# arousal
-speech_wordembeddings_arousal <- TaskRegr$new(
-  id = "speech_wordembeddings_arousal",
-  backend = audio_ema_features %>%
-    filter(!is.na(energy_num)) %>%
-    select(participant_id, energy_num, wav2vec2_1:wav2vec2_1024, roberta_1:roberta_1024),
-  target = "energy_num"
+    filter(!is.na(ema_energy)) %>%
+    select(participant_id, ema_energy, wav2vec2_1:wav2vec2_1024),
+  target = "ema_energy"
 )
 
 ## LIWC ---------------------------------------------------------
@@ -154,27 +117,27 @@ speech_wordembeddings_arousal <- TaskRegr$new(
 liwc_content <- TaskRegr$new(
   id = "liwc_content",
   backend = audio_ema_features %>%
-    filter(!is.na(content_num)) %>%
-    select(participant_id, content_num, function.:filler),
-  target = "content_num"
+    filter(!is.na(ema_content)) %>%
+    select(participant_id, ema_content, function.:filler),
+  target = "ema_content"
 )
 
 # sadness
 liwc_sad <- TaskRegr$new(
   id = "liwc_sad",
   backend = audio_ema_features %>%
-    filter(!is.na(sad_num)) %>%
-    select(participant_id, sad_num, function.:filler),
-  target = "sad_num"
+    filter(!is.na(ema_sad)) %>%
+    select(participant_id, ema_sad, function.:filler),
+  target = "ema_sad"
 )
 
 # arousal
 liwc_arousal <- TaskRegr$new(
   id = "liwc_arousal",
   backend = audio_ema_features %>%
-    filter(!is.na(energy_num)) %>%
-    select(participant_id, energy_num, function.:filler),
-  target = "energy_num"
+    filter(!is.na(ema_energy)) %>%
+    select(participant_id, ema_energy, function.:filler),
+  target = "ema_energy"
 )
 
 
@@ -184,57 +147,99 @@ liwc_arousal <- TaskRegr$new(
 liwc_masked_content <- TaskRegr$new(
   id = "liwc_masked_content",
   backend = audio_ema_features %>%
-    filter(!is.na(content_num)) %>%
-    select(participant_id, content_num, function._masked:filler_masked),
-  target = "content_num"
+    filter(!is.na(ema_content)) %>%
+    select(participant_id, ema_content, function._masked:filler_masked),
+  target = "ema_content"
 )
 
 # sadness
 liwc_masked_sad <- TaskRegr$new(
   id = "liwc_masked_sad",
   backend = audio_ema_features %>%
-    filter(!is.na(sad_num)) %>%
-    select(participant_id, sad_num, function._masked:filler_masked),
-  target = "sad_num"
+    filter(!is.na(ema_sad)) %>%
+    select(participant_id, ema_sad, function._masked:filler_masked),
+  target = "ema_sad"
 )
 
 # arousal
 liwc_masked_arousal <- TaskRegr$new(
   id = "liwc_masked_arousal",
   backend = audio_ema_features %>%
-    filter(!is.na(energy_num)) %>%
-    select(participant_id, energy_num, function._masked:filler_masked),
-  target = "energy_num"
+    filter(!is.na(ema_energy)) %>%
+    select(participant_id, ema_energy, function._masked:filler_masked),
+  target = "ema_energy"
 )
 
 ## eGeMAPS PROSODIC DESCRIPTORS --------------------------------
+
+# ensure numeric
+
+audio_ema_features <- audio_ema_features %>%
+  mutate(
+    across(
+      starts_with("egemaps__"),
+      ~ suppressWarnings(as.numeric(.x))
+    )
+  )
+
 
 # contentment
 egemaps_content <- TaskRegr$new(
   id = "egemaps_content",
   backend = audio_ema_features %>%
-    filter(!is.na(content_num)) %>%
-    select(participant_id, content_num, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
-  target = "content_num"
+    filter(!is.na(ema_content)) %>%
+    select(participant_id, ema_content, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
+  target = "ema_content"
 )
 
 # sadness
 egemaps_sad <- TaskRegr$new(
   id = "egemaps_sad",
   backend = audio_ema_features %>%
-    filter(!is.na(sad_num)) %>%
-    select(participant_id, sad_num, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
-  target = "sad_num"
+    filter(!is.na(ema_sad)) %>%
+    select(participant_id, ema_sad, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
+  target = "ema_sad"
 )
 
 # arousal
 egemaps_arousal <- TaskRegr$new(
   id = "egemaps_arousal",
   backend = audio_ema_features %>%
-    filter(!is.na(energy_num)) %>%
-    select(participant_id, energy_num, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
-  target = "energy_num"
+    filter(!is.na(ema_energy)) %>%
+    select(participant_id, ema_energy, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
+  target = "ema_energy"
 )
+
+
+## ALL COMBINED ------------------------------------
+
+# contentment
+ensemble_content <- TaskRegr$new(
+  id = "ensemble_content",
+  backend = audio_ema_features %>%
+    filter(!is.na(ema_content)) %>%
+    select(participant_id, ema_content, wav2vec2_1:wav2vec2_1024, roberta_1:roberta_1024, function.:filler, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
+  target = "ema_content"
+)
+
+# sadness
+ensemble_sad <- TaskRegr$new(
+  id = "ensemble_sad",
+  backend = audio_ema_features %>%
+    filter(!is.na(ema_sad)) %>%
+    select(participant_id, ema_sad, wav2vec2_1:wav2vec2_1024, roberta_1:roberta_1024, function.:filler, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
+  target = "ema_sad"
+)
+
+# arousal
+ensemble_arousal <- TaskRegr$new(
+  id = "ensemble_arousal",
+  backend = audio_ema_features %>%
+    filter(!is.na(ema_energy)) %>%
+    select(participant_id, ema_energy, wav2vec2_1:wav2vec2_1024, roberta_1:roberta_1024, function.:filler, egemaps__F0semitoneFrom27.5Hz_sma3nz_amean:egemaps__equivalentSoundLevel_dBp),
+  target = "ema_energy"
+)
+
 
 
 ## add blocking
@@ -328,16 +333,16 @@ egemaps_arousal$col_roles$feature = setdiff(egemaps_arousal$col_roles$feature, "
 # speech + word embeddings 
 
 #  content 
-speech_wordembeddings_content$col_roles$group = "participant_id"
-speech_wordembeddings_content$col_roles$feature = setdiff(speech_wordembeddings_content$col_roles$feature, "participant_id")
+ensemble_content$col_roles$group = "participant_id"
+ensemble_content$col_roles$feature = setdiff(ensemble_content$col_roles$feature, "participant_id")
 
 #  sad score
-speech_wordembeddings_sad$col_roles$group = "participant_id"
-speech_wordembeddings_sad$col_roles$feature = setdiff(speech_wordembeddings_sad$col_roles$feature, "participant_id")
+ensemble_sad$col_roles$group = "participant_id"
+ensemble_sad$col_roles$feature = setdiff(ensemble_sad$col_roles$feature, "participant_id")
 
 #  arousal score
-speech_wordembeddings_arousal$col_roles$group = "participant_id"
-speech_wordembeddings_arousal$col_roles$feature = setdiff(speech_wordembeddings_arousal$col_roles$feature, "participant_id")
+ensemble_arousal$col_roles$group = "participant_id"
+ensemble_arousal$col_roles$feature = setdiff(ensemble_arousal$col_roles$feature, "participant_id")
 
 #### LEARNERS ####
 
@@ -354,12 +359,12 @@ repeated_cv <- rsmp("repeated_cv", repeats = 5, folds = 10)
 #### PCA PIPELINE ####
 po_pca100 <- po("pca", id = "pca100", rank. = 100, center = TRUE, scale. = TRUE)
 
-# Random forest with PCA (no tuning)
+# Random forest with PCA 
 lrn_rf_pca <- GraphLearner$new(po_pca100 %>>% lrn("regr.ranger",
                                                   num.trees = 1000))
 lrn_rf_pca$id <- "rf_pca100"
 
-# Elastic net (cv_glmnet) with PCA (no tuning of alpha here)
+# Elastic net (cv_glmnet) with PCA 
 lrn_en_pca <- GraphLearner$new(po_pca100 %>>% lrn("regr.cv_glmnet", alpha = 0.5))
 lrn_en_pca$id <- "en_pca100"
 
@@ -383,7 +388,7 @@ design_main = benchmark_grid(
     liwc_arousal, liwc_content, liwc_sad,
     liwc_masked_arousal, liwc_masked_content, liwc_masked_sad,
     egemaps_arousal, egemaps_content, egemaps_sad,
-    speech_wordembeddings_arousal, speech_wordembeddings_content, speech_wordembeddings_sad
+    ensemble_arousal, ensemble_content, ensemble_sad
   ),
   learner = list(lrn_fl, lrn_rf, lrn_en),
   resampling = repeated_cv
@@ -404,29 +409,26 @@ bmgrid = rbind(design_main,
                design_pca
                )
 
-future::plan("multisession", workers = 20) # enable parallelization
+future::plan("multisession", workers = 10) # enable parallelization
 
 bmr_main = benchmark(bmgrid, store_models = F, store_backends = F) # execute the benchmark
 
 saveRDS(bmr_main, "results/bmr_main.rds") # save results
 
 
-## separate benchmark using en (to extract regression weights and model weights from later)
+## separate benchmark using en (to extract regression weights from later)
 
 bmgrid_en = benchmark_grid(
   task = c(
+    ensemble_arousal, # ensemble
+    ensemble_content, 
+    ensemble_sad,
     wordembeddings_arousal, # text embeddings
     wordembeddings_content,
     wordembeddings_sad,
-    speechembeddings_arousal, # speech embeddings
-    speechembeddings_content,
-    speechembeddings_sad,
     liwc_arousal, # liwc
     liwc_content,
-    liwc_sad,
-    egemaps_arousal, # egemaps
-    egemaps_content,
-    egemaps_sad
+    liwc_sad
   ),
   learner = list(lrn_en),
   resampling = repeated_cv
@@ -468,17 +470,17 @@ bmr_main$aggregate(mes)
 
 bmr_results_folds <- extract_bmr_results(bmr_main, mes)
 
-## create combined overview table of performance incl. significance tests
+## create combined overview table of performance
 
 pred_table <- results_table(audio_ema_features, bmr_results_folds)
 
 # save prediction tables
-write.csv2(pred_table, "results/pred_table.csv")
+write.csv(pred_table, "results/pred_table.csv")
 
 ## create performance figure 
 
 # --- choose the legend/order once ---
-feat_levels <- c("Text + speech embeddings", "Text embeddings", "Speech embeddings", "LIWC", "Prosodic descriptors")
+feat_levels <- c("All", "Text embeddings", "Speech embeddings", "LIWC", "Prosodic descriptors")
 
 bmr_results_fig <- bmr_results_folds %>%
   filter(task_id %in% c(
@@ -486,7 +488,7 @@ bmr_results_fig <- bmr_results_folds %>%
     "liwc_content", "liwc_sad", "liwc_arousal",
     "wordembeddings_content", "wordembeddings_sad", "wordembeddings_arousal",
     "speechembeddings_content", "speechembeddings_sad", "speechembeddings_arousal",
-    "speech_wordembeddings_content", "speech_wordembeddings_sad", "speech_wordembeddings_arousal"
+    "ensemble_content", "ensemble_sad", "ensemble_arousal"
   )) %>%
   filter(learner_id == "regr.cv_glmnet") %>%
   mutate(
@@ -495,7 +497,7 @@ bmr_results_fig <- bmr_results_folds %>%
       task_id %in% c("liwc_content", "liwc_sad", "liwc_arousal")              ~ "LIWC",
       task_id %in% c("wordembeddings_content", "wordembeddings_sad", "wordembeddings_arousal") ~ "Text embeddings",
       task_id %in% c("speechembeddings_content", "speechembeddings_sad", "speechembeddings_arousal") ~ "Speech embeddings",
-      task_id %in% c("speech_wordembeddings_content", "speech_wordembeddings_sad", "speech_wordembeddings_arousal") ~ "Text + speech embeddings"
+      task_id %in% c("ensemble_content", "ensemble_sad", "ensemble_arousal") ~ "All"
     ),
     task_id = case_when(
       task_id == "egemaps_content"          ~ "Contentment",
@@ -510,9 +512,9 @@ bmr_results_fig <- bmr_results_folds %>%
       task_id == "speechembeddings_content" ~ "Contentment",
       task_id == "speechembeddings_sad"     ~ "Sadness",
       task_id == "speechembeddings_arousal" ~ "Arousal",
-      task_id == "speech_wordembeddings_content" ~ "Contentment",
-      task_id == "speech_wordembeddings_sad"     ~ "Sadness",
-      task_id == "speech_wordembeddings_arousal" ~ "Arousal"
+      task_id == "ensemble_content" ~ "Contentment",
+      task_id == "ensemble_sad"     ~ "Sadness",
+      task_id == "ensemble_arousal" ~ "Arousal"
     )
   ) %>%
   # Replace NA in regr.srho (Elastic Net) with zero
@@ -526,7 +528,7 @@ bmr_results_fig <- bmr_results_folds %>%
 
 
 # perf_df must have: task_id, feature_set, rho  (one row per run/fold/bootstrap)
-perf_plot <- ggplot(bmr_results_fig, aes(x = task_id, y = rho, fill = feature_set)) +
+perf_plot <- ggplot(bmr_results_fig, aes(x = task_id, y = regr.srho, fill = feature_set)) +
   geom_boxplot(
     width = 0.6,
     position = position_dodge2(width = 0.75, preserve = "single"),
@@ -540,14 +542,15 @@ perf_plot <- ggplot(bmr_results_fig, aes(x = task_id, y = rho, fill = feature_se
   ) +
   scale_fill_manual(
     name   = "Feature set",
-    values = c(
-      "Text embeddings"      = "#e41a1c",
-      "Speech embeddings"    = "#377eb8",
-      "LIWC"                 = "#ff7f00",
-      "Prosodic descriptors" = "#4daf4a"
+    values = cols <- c(
+      "All"                = "#6a3d9a",
+      "Text embeddings"     = "#33a02c",
+      "Speech embeddings"   = "#e31a1c",
+      "LIWC"                = "#ff7f00",
+      "Prosodic descriptors"= "#1f78b4"
     ),
     breaks = feat_levels,
-    labels = c("Text\nembeddings","Speech\nembeddings","LIWC","Prosodic\ndescriptors")
+    labels = c("All", "Text\nembeddings","Speech\nembeddings","LIWC","Prosodic\ndescriptors")
   ) +
   labs(
     x = NULL,
@@ -555,7 +558,7 @@ perf_plot <- ggplot(bmr_results_fig, aes(x = task_id, y = rho, fill = feature_se
     title = NULL
   ) +
   geom_hline(yintercept = 0, linetype = "dotted") +
-  coord_cartesian(ylim = c(0, 0.4)) +   # avoids clipping outliers compared to scale_y_continuous(limits=..)
+  coord_cartesian(ylim = c(0, 0.5)) +   # avoids clipping outliers compared to scale_y_continuous(limits=..)
   theme_custom() +
   theme(
     legend.position = "top",
