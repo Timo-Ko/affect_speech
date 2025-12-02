@@ -10,7 +10,6 @@ set.seed(123, kind = "L'Ecuyer") # set seed to make sure all results are reprodu
 
 # load required functions
 source("code/functions/bmr_results.R")
-source("code/functions/sign_test_folds.R")
 source("code/functions/plot_theme.R")
 
 ### READ IN DATA ####
@@ -434,7 +433,7 @@ bmgrid_en = benchmark_grid(
   resampling = repeated_cv
 )
 
-future::plan("multisession", workers = 10) # enable parallelization
+future::plan("multisession", workers = 20) # enable parallelization
 
 bmr_en = benchmark(bmgrid_en, store_models = T, store_backends = F) # execute the benchmark
 
@@ -517,40 +516,57 @@ bmr_results_fig <- bmr_results_folds %>%
       task_id == "ensemble_arousal" ~ "Arousal"
     )
   ) %>%
-  # Replace NA in regr.srho (Elastic Net) with zero
-  mutate(
-    regr.srho = if_else(learner_id == "regr.cv_glmnet" & is.na(regr.srho), 0, regr.srho)
-  ) %>% # order tasks and feature sets
+  # # Replace NA in regr.srho (Elastic Net) with zero
+  # mutate(
+  #   regr.srho = if_else(learner_id == "regr.cv_glmnet" & is.na(regr.srho), 0, regr.srho)
+  # ) %>% # order tasks and feature sets
   mutate(
     task_id = factor(task_id, levels = c("Contentment", "Sadness", "Arousal")),
     feature_set = factor(feature_set, levels = feat_levels) 
   )
 
+perf_summary <- bmr_results_fig %>%
+  group_by(task_id, feature_set) %>%
+  summarise(
+    ymin   = quantile(regr.srho, 0.025, na.rm = TRUE),  # 2.5th percentile
+    lower  = quantile(regr.srho, 0.25,  na.rm = TRUE),  # 25th percentile
+    middle = median(regr.srho,          na.rm = TRUE),  # median
+    upper  = quantile(regr.srho, 0.75,  na.rm = TRUE),  # 75th percentile
+    ymax   = quantile(regr.srho, 0.975, na.rm = TRUE),  # 97.5th percentile
+    .groups = "drop"
+  )
 
-# perf_df must have: task_id, feature_set, rho  (one row per run/fold/bootstrap)
-perf_plot <- ggplot(bmr_results_fig, aes(x = task_id, y = regr.srho, fill = feature_set)) +
+# make sure factor levels are preserved
+perf_summary <- perf_summary %>%
+  mutate(
+    task_id     = factor(task_id,     levels = c("Contentment", "Sadness", "Arousal")),
+    feature_set = factor(feature_set, levels = feat_levels)
+  )
+
+# boxplot with IQR box and 95% whiskers
+perf_plot <- ggplot(
+  perf_summary,
+  aes(x = task_id, y = middle, fill = feature_set)
+) +
   geom_boxplot(
+    stat  = "identity",
+    aes(ymin = ymin, lower = lower, middle = middle, upper = upper, ymax = ymax),
     width = 0.6,
     position = position_dodge2(width = 0.75, preserve = "single"),
-    outlier.shape = 16, outlier.alpha = 0.25
-  ) +
-  # optional: show medians explicitly
-  stat_summary(
-    fun = median, geom = "point",
-    position = position_dodge2(width = 0.75, preserve = "single"),
-    shape = 21, size = 2, fill = "white", color = "black"
+    outlier.shape = NA   # no additional outlier points; whiskers already define 95% range
   ) +
   scale_fill_manual(
     name   = "Feature set",
-    values = cols <- c(
-      "All"                = "#6a3d9a",
+    values = c(
+      "All"                 = "#6a3d9a",
       "Text embeddings"     = "#33a02c",
       "Speech embeddings"   = "#e31a1c",
       "LIWC"                = "#ff7f00",
       "Prosodic descriptors"= "#1f78b4"
     ),
     breaks = feat_levels,
-    labels = c("All", "Text\nembeddings","Speech\nembeddings","LIWC","Prosodic\ndescriptors")
+    labels = c("All", "Text\nembeddings", "Speech\nembeddings",
+               "LIWC", "Prosodic\ndescriptors")
   ) +
   labs(
     x = NULL,
@@ -558,7 +574,7 @@ perf_plot <- ggplot(bmr_results_fig, aes(x = task_id, y = regr.srho, fill = feat
     title = NULL
   ) +
   geom_hline(yintercept = 0, linetype = "dotted") +
-  coord_cartesian(ylim = c(0, 0.5)) +   # avoids clipping outliers compared to scale_y_continuous(limits=..)
+  coord_cartesian(ylim = c(0, 0.5)) +
   theme_custom() +
   theme(
     legend.position = "top",
@@ -567,14 +583,13 @@ perf_plot <- ggplot(bmr_results_fig, aes(x = task_id, y = regr.srho, fill = feat
   )
 
 
-
 # Print
 print(perf_plot)
 
 # save figure
 
 ggsave(
-  filename = "figures/bmr_plot_all.png",
+  filename = "figures/bmr_plot.png",
   plot     = perf_plot,   
   width    = 14,
   height   = 8,
