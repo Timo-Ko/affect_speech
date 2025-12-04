@@ -71,9 +71,9 @@ p_len_err_loess <- ggplot(pred_plot,
     method  = "loess",
     formula = y ~ x,
     se      = FALSE,
-    span    = 0.75
+    span    = 1
   ) +
-  coord_cartesian(ylim = c(0.55, 0.75)) +      # <<< manual y-axis range
+  coord_cartesian(ylim = c(0.55, 0.75), xlim = c(5, 60)) +      # manual axis range
   labs(
     x     = "Voiced speech duration (seconds)",
     y     = "Absolute prediction error",
@@ -84,3 +84,5 @@ p_len_err_loess <- ggplot(pred_plot,
 
 ggsave("figures/len_vs_error_ensemble_targets_loess.png",
        p_len_err_loess, width = 10, height = 8, dpi = 300)
+
+# finish

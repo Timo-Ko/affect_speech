@@ -177,10 +177,10 @@ audio_df <- readRDS("data/audio_features.rds") %>%
                            tz = "UTC")
   )
 
-audio_ema_matched_py <- audio_df %>%
+audio_ema_matched <- audio_df %>%
   left_join(py_matched_wide,
             by = c("participant_id", "timestamp"))
 
-saveRDS(audio_ema_matched_py, "data/audio_ema_matched_new.rds")
+saveRDS(audio_ema_matched, "data/audio_ema_matched.rds")
 
 # finish 

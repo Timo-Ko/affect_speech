@@ -1,6 +1,16 @@
+# load packages
+
 library(mlr3)
 library(data.table)
 library(mlr3misc)
+library(dplyr)
+library(purrr)
+library(tidyr)
+library(knitr)
+library(ggplot2)
+library(grid)
+library(patchwork)
+library(ggnewscale)
 
 ## --- read benchmark and prep --------------------------------------------------
 bmr_en <- readRDS("results/bmr_en.rds")
@@ -79,14 +89,16 @@ extract_betas <- function(lrn) {
   cv <- get_cv_glmnet(lrn)
   if (is.null(cv)) return(NULL)
   
-  fit <- cv$glmnet.fit  # glmnet "elnet" object
+  fit <- cv$glmnet.fit  # glmnet "elnet" object (beta is a dgCMatrix)
   
   # column index of lambda.1se in beta/a0
   idx <- cv$index["1se", "Lambda"]
   if (is.na(idx) || idx < 1 || idx > length(fit$lambda)) return(NULL)
   
-  beta_col   <- fit$beta[, idx]          # sparse vector of betas
-  feat_names <- rownames(fit$beta)
+  beta_mat   <- as.matrix(fit$beta)          # now a standard numeric matrix
+  beta_col   <- beta_mat[, idx, drop = TRUE] # numeric vector
+  feat_names <- rownames(beta_mat)
+  # -------------------------------------------------------------------
   
   if (length(beta_col) == 0) return(NULL)
   
@@ -98,6 +110,7 @@ extract_betas <- function(lrn) {
     stringsAsFactors = FALSE
   )
 }
+
 
 
 ## --- collect betas for a given task_id --------------------------------
@@ -194,11 +207,6 @@ beta_summary_all
 ### code for table 1 ####
 
 
-library(dplyr)
-library(purrr)
-library(tidyr)
-library(knitr)
-
 # Targets
 targets <- c("ema_content" = "Contentment",
              "ema_sad"     = "Sadness",
@@ -226,9 +234,9 @@ liwc_betas <- all_betas_dt %>%
   dplyr::arrange(target, dplyr::desc(abs(mean_beta)))
 
 # --- Top-10 per target, beta string now uses the 95% range -------------------
-liwc_top10 <- liwc_betas %>%
+liwc_top5 <- liwc_betas %>%
   dplyr::group_by(target) %>%
-  dplyr::slice_max(order_by = abs(mean_beta), n = 10, with_ties = FALSE) %>%
+  dplyr::slice_max(order_by = abs(mean_beta), n = 5, with_ties = FALSE) %>%
   dplyr::ungroup() %>%
   dplyr::mutate(
     beta_str = sprintf(
@@ -238,7 +246,7 @@ liwc_top10 <- liwc_betas %>%
   )
 
 # --- reshape into wide table ---
-liwc_table_df <- liwc_top10 %>%
+liwc_table_df <- liwc_top5 %>%
   group_by(target) %>%
   mutate(row = row_number()) %>%
   ungroup() %>%
@@ -255,7 +263,7 @@ liwc_table_df <- liwc_top10 %>%
     sad_feature,      sad_beta_str
   )
 
-print(liwc_table_df, n = 5)
+print(liwc_table_df)
 
 # save table
 write.csv(liwc_table_df, "results/en_liwc_betas.csv")
@@ -286,31 +294,30 @@ betas_emb <- all_betas_dt[
 targets_order <- c("Arousal","Contentment","Sadness")
 
 # 2) LIWC-22 lookup: abbreviation -> full label (subset of categories used here)
-#    Names taken from Table 2 of the LIWC-22 manual.
+
 liwc_lookup <- tibble::tribble(
-  ~liwc,        ~liwc_full,
-  "tone_pos",   "Positive tone",
-  "tone_neg",   "Negative tone",
-  "emo_pos",    "Positive emotion",
-  "emo_neg",    "Negative emotion",
-  "emo_anx",    "Anxiety",
-  "emo_sad",    "Sadness",
-  "Affect",     "Affect",
-  "Cognition",  "Cognition",
-  "Perception", "Perception",
-  "Conversation","Conversational",
-  "nonflu",     "Nonfluencies",
-  "work",       "Work",
-  "space",      "Space",
-  "verb",       "Common verbs",
-  "adj",        "Common adjectives",
-  "focusfuture","Future focus",
-  "focuspast",  "Past focus",
-  "you",        "2nd person",
-  "we",         "1st person plural",
-  "insight",    "Insight",
-  "feeling",    "Feeling"
+  ~liwc,         ~liwc_full,
+  # Contentment panel
+  "i",           "1st person singular",
+  "Cognition",   "Cognition",
+  "ppron",       "Personal pronouns",
+  "negate",      "Negations",
+  "pronoun",     "Total pronouns",
+  
+  # Sadness panel
+  "tone_neg",    "Negative tone",
+  "emo_neg",     "Negative emotion",
+  "emo_anx",     "Anxiety",
+  "verb",        "Common verbs",
+  "leisure",     "Leisure",
+  
+  # Arousal panel
+  "emo_pos",     "Positive emotion",
+  "tone_pos",    "Positive tone",
+  "home",        "Home",
+  "focuspresent","Present focus"
 )
+
 
 # ==== Figure 2 build ==========================================================
 TOP_N <- 5  # LIWC categories per target (ranked by |Δρ|)
@@ -354,10 +361,16 @@ build_delta_tbl <- function(target_label) {
     dplyr::slice(1:TOP_N)
   
   # pretty labels with β
-  pos_lab <- paste0(gsub("^roberta_", "", pos_emb),
-                    " (β = ", sprintf("%+.02f", pos_row$beta[1]), ")")
-  neg_lab <- paste0(gsub("^roberta_", "", neg_emb),
-                    " (β = ", sprintf("%+.02f", neg_row$beta[1]), ")")
+  pos_lab <- paste0(
+    gsub("^roberta_", "", pos_emb),
+    "\n(β = ", sprintf("%+.02f", pos_row$beta[1]), ")"
+  )
+  
+  neg_lab <- paste0(
+    gsub("^roberta_", "", neg_emb),
+    "\n(β = ", sprintf("%+.02f", neg_row$beta[1]), ")"
+  )
+  
   
   # long format; keep `delta` so we can order by it (shared across + / −)
   both_long <- tidyr::pivot_longer(
@@ -393,11 +406,6 @@ stopifnot(nrow(delta_df) > 0)
 # unified color limits for ONE legend
 L <- max(abs(delta_df$rho), na.rm = TRUE)
 
-library(ggplot2)
-library(dplyr)
-library(grid)
-library(patchwork)
-library(ggnewscale)
 
 ## ---------- plotting helper --------------------------------------------------
 
@@ -536,67 +544,8 @@ final_plot <- (p_con | p_sad | p_ar) +
 
 print(final_plot)
 
-ggsave("figures/embed_interpretability.png", final_plot,
+ggsave("figures/top_embed_interpretability.png", final_plot,
        width = 10, height = 5, units = "in", dpi = 300)
 
-# finish
-
-
-# # Small plotting helper
-# col_plot <- function(dat, show_y = TRUE, col_title = "+") {
-#   ggplot(dat, aes(x = embedding_label, y = liwc, color = rho, size = abs(rho))) +
-#     geom_point() +
-#     scale_y_discrete(drop = TRUE, limits = function(x) rev(x)) +
-#     scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
-#     scale_color_gradient2(
-#       limits   = c(-L, L),
-#       low      = "#d73027",
-#       mid      = "white",
-#       high     = "#1a9850",
-#       midpoint = 0,
-#       name     = "Spearman \u03C1"
-#     ) +
-#     scale_size_continuous(
-#       range  = c(2.6, 6),
-#       breaks = c(0.05, 0.15, 0.25),
-#       labels = c(".05", ".15", ".25"),
-#       name   = "|Spearman \u03C1|"
-#     ) +
-#     labs(title = col_title, x = NULL, y = NULL) +
-#     theme_minimal(base_size = 11) +
-#     theme(
-#       panel.grid.major.x = element_blank(),
-#       panel.grid.minor   = element_blank(),
-#       axis.text.x        = element_text(angle = 15, hjust = 0.5, vjust = 1),
-#       axis.text.y        = if (show_y) element_text() else element_blank(),
-#       plot.title         = element_text(face = "bold", hjust = 0.5, size = 11),
-#       legend.position    = "right"
-#     )
-# }
-# 
-# 
-# library(grid)
-# 
-# make_target_pair <- function(tgt) {
-#   dat <- delta_df %>% filter(target == tgt)
-#   left  <- col_plot(dat %>% filter(sign == "+"),  show_y = TRUE,  col_title = "+")
-#   right <- col_plot(dat %>% filter(sign == "-"), show_y = FALSE, col_title = "\u2212")
-#   pair <- left | right
-#   title_grob <- grid::textGrob(tgt, gp = grid::gpar(fontsize = 13, fontface = "bold"))
-#   wrap_elements(grid::grobTree(title_grob)) / pair + plot_layout(heights = c(0.06, 1))
-# }
-# 
-# # Build and combine with one legend
-# p_ar  <- make_target_pair("Arousal")
-# p_con <- make_target_pair("Contentment")
-# p_sad <- make_target_pair("Sadness")
-# 
-# final_plot <- (p_con | p_sad | p_ar) + plot_layout(guides = "collect") &
-#   theme(legend.position = "right")
-# 
-# print(final_plot)
-# 
-# ggsave("figures/embed_interpretability.png", final_plot,
-#        width = 12, height = 8, units = "in", dpi = 300)
 
 # finish

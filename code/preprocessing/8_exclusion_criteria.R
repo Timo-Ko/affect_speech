@@ -7,7 +7,7 @@ library(psych)
 matched_df <- readRDS("data/audio_ema_matched.rds")
 
 ## FILTER A  ─ ema within 10 mins available  ------------------------------
-filtered_time_df <- audio_ema_matched_py %>% 
+filtered_time_df <- matched_df %>% 
   filter(abs(time_diff)      <= 600)          # 10 mins
 
 # get some statistics for initial sample
@@ -40,7 +40,7 @@ audio_ema_matched_cleaned <- filtered_diarization_df  %>%
 
 
 ## save and quick report ---------------------------------------------
-saveRDS(audio_ema_matched_cleaned, "data/audio_ema_matched_cleaned.rds") # rds
+saveRDS(audio_ema_features, "data/audio_ema_matched_cleaned.rds") # rds
 
 cat("\nFinal data: ",
     n_distinct(audio_ema_matched_cleaned$participant_id), " participants, ",
@@ -81,5 +81,11 @@ mean_age
 describe(audio_ema_matched_cleaned$ema_content)
 describe(audio_ema_matched_cleaned$ema_sad)
 describe(audio_ema_matched_cleaned$ema_energy)
+
+# cors between emotion self-reports
+
+cor_mat <- cor(audio_ema_matched_cleaned %>% select(ema_content, ema_sad, ema_energy), use = "pairwise.complete.obs", method = "spearman")
+
+cor_mat
 
 # finish
