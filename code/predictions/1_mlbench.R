@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "ggtext", "mlr3", "mlr3learners", "mlr3pipelines","ranger", "glmnet", "future", "remotes", "bbotk", "patchwork")
+packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "ggtext", "mlr3", "mlr3tuning",  "mlr3learners", "mlr3pipelines","ranger", "glmnet", "future", "remotes", "bbotk", "patchwork")
 #install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -359,12 +359,11 @@ repeated_cv <- rsmp("repeated_cv", repeats = 5, folds = 10)
 po_pca100 <- po("pca", id = "pca100", rank. = 100, center = TRUE, scale. = TRUE)
 
 # Random forest with PCA 
-lrn_rf_pca <- GraphLearner$new(po_pca100 %>>% lrn("regr.ranger",
-                                                  num.trees = 1000))
+lrn_rf_pca <- GraphLearner$new(po_pca100 %>>% lrn_rf)
 lrn_rf_pca$id <- "rf_pca100"
 
 # Elastic net (cv_glmnet) with PCA 
-lrn_en_pca <- GraphLearner$new(po_pca100 %>>% lrn("regr.cv_glmnet", alpha = 0.5))
+lrn_en_pca <- GraphLearner$new(po_pca100 %>>% lrn_en)
 lrn_en_pca$id <- "en_pca100"
 
 #### BENCHMARK ####
@@ -408,12 +407,11 @@ bmgrid = rbind(design_main,
                design_pca
                )
 
-future::plan("multisession", workers = 10) # enable parallelization
+future::plan("multisession", workers = 20) # enable parallelization
 
 bmr_main = benchmark(bmgrid, store_models = F, store_backends = F) # execute the benchmark
 
 saveRDS(bmr_main, "results/bmr_main.rds") # save results
-
 
 ## separate benchmark using en (to extract regression weights from later)
 
@@ -478,7 +476,6 @@ write.csv(pred_table, "results/pred_table.csv")
 
 ## create performance figure 
 
-# --- choose the legend/order once ---
 feat_levels <- c("All", "Text embeddings", "Speech embeddings", "LIWC", "Prosodic descriptors")
 
 bmr_results_fig <- bmr_results_folds %>%
@@ -525,55 +522,98 @@ bmr_results_fig <- bmr_results_folds %>%
     feature_set = factor(feature_set, levels = feat_levels) 
   )
 
+## new violin plot code
+## --- from bmr_results_fig onward: muted PNAS-style plot ---
+
+# (Optional but recommended) remove NA/Inf to avoid violin warnings
+bmr_results_fig <- bmr_results_fig %>%
+  filter(is.finite(regr.srho))
+
+# --- choose the legend/order once ---
+feat_levels <- c("All", "Text embeddings", "Speech embeddings", "LIWC", "Prosodic descriptors")
+
+bmr_results_fig <- bmr_results_fig %>%
+  mutate(
+    task_id = factor(task_id, levels = c("Contentment", "Sadness", "Arousal")),
+    feature_set = factor(feature_set, levels = feat_levels)
+  )
+
+# --- summary for median + 95% interval ---
 perf_summary <- bmr_results_fig %>%
   group_by(task_id, feature_set) %>%
   summarise(
-    ymin   = quantile(regr.srho, 0.025, na.rm = TRUE),  # 2.5th percentile
-    lower  = quantile(regr.srho, 0.25,  na.rm = TRUE),  # 25th percentile
-    middle = median(regr.srho,          na.rm = TRUE),  # median
-    upper  = quantile(regr.srho, 0.75,  na.rm = TRUE),  # 75th percentile
-    ymax   = quantile(regr.srho, 0.975, na.rm = TRUE),  # 97.5th percentile
+    q025 = quantile(regr.srho, 0.025, na.rm = TRUE),
+    med  = median(regr.srho,          na.rm = TRUE),
+    q975 = quantile(regr.srho, 0.975, na.rm = TRUE),
     .groups = "drop"
-  )
-
-# make sure factor levels are preserved
-perf_summary <- perf_summary %>%
+  ) %>%
   mutate(
     task_id     = factor(task_id,     levels = c("Contentment", "Sadness", "Arousal")),
     feature_set = factor(feature_set, levels = feat_levels)
   )
 
-# boxplot with IQR box and 95% whiskers
+pd <- position_dodge(width = 0.75)
+
+# --- muted, print-friendly palette (PNAS-like) ---
+pnas_palette <- c(
+  "All"                  = "#3B5B92",  # muted navy
+  "Text embeddings"      = "#4C8C6A",  # muted green
+  "Speech embeddings"    = "#A94A3F",  # muted brick red
+  "LIWC"                 = "#C18F3A",  # muted ochre
+  "Prosodic descriptors" = "#6B6E77"   # muted gray-blue
+)
+
 perf_plot <- ggplot(
-  perf_summary,
-  aes(x = task_id, y = middle, fill = feature_set)
+  bmr_results_fig,
+  aes(x = task_id, y = regr.srho, fill = feature_set)
 ) +
-  geom_boxplot(
-    stat  = "identity",
-    aes(ymin = ymin, lower = lower, middle = middle, upper = upper, ymax = ymax),
-    width = 0.6,
-    position = position_dodge2(width = 0.75, preserve = "single"),
-    outlier.shape = NA   # no additional outlier points; whiskers already define 95% range
+  # Violin distribution (muted)
+  geom_violin(
+    position = pd,
+    width    = 0.85,
+    trim     = FALSE,
+    alpha    = 0.60,
+    color    = NA
+  ) +
+  # 95% interval line (neutral)
+  geom_linerange(
+    data = perf_summary,
+    aes(x = task_id, ymin = q025, ymax = q975, group = feature_set),
+    position = pd,
+    linewidth = 0.6,
+    colour = "grey20",
+    inherit.aes = FALSE
+  ) +
+  # Median dot (white fill, neutral outline)
+  geom_point(
+    data = perf_summary,
+    aes(x = task_id, y = med, group = feature_set),
+    position = pd,
+    size = 2.2,
+    shape = 21,
+    fill = "white",
+    colour = "grey20",
+    stroke = 0.4,
+    inherit.aes = FALSE
   ) +
   scale_fill_manual(
-    name   = "Feature set",
-    values = c(
-      "All"                 = "#6a3d9a",
-      "Text embeddings"     = "#33a02c",
-      "Speech embeddings"   = "#e31a1c",
-      "LIWC"                = "#ff7f00",
-      "Prosodic descriptors"= "#1f78b4"
-    ),
+    name   = "Variable set",
+    values = pnas_palette,
     breaks = feat_levels,
-    labels = c("All", "Text\nembeddings", "Speech\nembeddings",
-               "LIWC", "Prosodic\ndescriptors")
+    labels = c(
+      "All",
+      "Text\nembeddings",
+      "Speech\nembeddings",
+      "LIWC",
+      "Prosodic\ndescriptors"
+    )
   ) +
   labs(
     x = NULL,
     y = bquote("Spearman correlation (" * italic(rho) * ")"),
     title = NULL
   ) +
-  geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_hline(yintercept = 0, linetype = "dotted", colour = "grey30") +
   coord_cartesian(ylim = c(0, 0.5)) +
   theme_custom() +
   theme(
@@ -582,19 +622,16 @@ perf_plot <- ggplot(
     axis.text.x = element_text(angle = 0, vjust = 0.5)
   )
 
-
-# Print
 print(perf_plot)
 
-# save figure
 
 ggsave(
-  filename = "figures/bmr_plot.png",
-  plot     = perf_plot,   
+  filename = "figures/bmr_plot_violin.png",
+  plot     = perf_plot,
   width    = 14,
   height   = 8,
   units    = "in",
-  dpi      = 300        
+  dpi      = 300
 )
 
 ### FINISH

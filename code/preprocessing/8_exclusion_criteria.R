@@ -76,16 +76,71 @@ mean_age <- audio_ema_matched_cleaned %>%
 
 mean_age
 
-
-# emotion self-reports
-describe(audio_ema_matched_cleaned$ema_content)
-describe(audio_ema_matched_cleaned$ema_sad)
-describe(audio_ema_matched_cleaned$ema_energy)
-
 # cors between emotion self-reports
 
 cor_mat <- cor(audio_ema_matched_cleaned %>% select(ema_content, ema_sad, ema_energy), use = "pairwise.complete.obs", method = "spearman")
 
 cor_mat
+
+# distribution of emotion self-reports
+describe(audio_ema_matched_cleaned$ema_content)
+describe(audio_ema_matched_cleaned$ema_sad)
+describe(audio_ema_matched_cleaned$ema_energy)
+
+# create figure
+
+library(tidyverse)
+
+ema_long <- audio_ema_matched_cleaned %>%
+  transmute(
+    Contentment = ema_content,
+    Sadness     = ema_sad,
+    Arousal     = ema_energy
+  ) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "State",
+    values_to = "Rating"
+  ) %>%
+  filter(!is.na(Rating)) %>%              # ← remove NAs explicitly
+  mutate(
+    Rating = factor(as.integer(Rating), levels = 0:4),
+    State  = factor(State, levels = c("Contentment", "Sadness", "Arousal"))
+  )
+
+ema_counts <- ema_long %>%
+  count(State, Rating) %>%
+  complete(State, Rating, fill = list(n = 0))
+
+y_max <- max(ema_counts$n)
+
+state_dist <- ggplot(ema_counts, aes(x = Rating, y = n)) +
+  geom_col(color = "white", fill = "grey70", width = 0.9) +
+  facet_wrap(~ State, nrow = 1, scales = "fixed") +
+  scale_y_continuous(
+    limits = c(0, y_max * 1.05),
+    expand = expansion(mult = c(0, 0.02))
+  ) +
+  labs(
+    x = "Self-reported rating",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+
+ggsave(
+  filename = "figures/state_distribution.png",
+  plot     = state_dist,
+  width    = 12,
+  height   = 6,
+  units    = "in",
+  dpi      = 300
+)
+
+
 
 # finish

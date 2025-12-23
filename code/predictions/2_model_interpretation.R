@@ -284,7 +284,13 @@ features_df <- readRDS("data/audio_ema_matched_cleaned.rds")
 betas_emb <- all_betas_dt[
   grepl("^wordembeddings_", task_id) & grepl("^roberta_\\d+$", feature)
 ][
-  , .(beta = mean(beta, na.rm = TRUE)), by = .(target, feature)
+  , .(
+    mean_beta = mean(beta, na.rm = TRUE),
+    q_low     = as.numeric(quantile(beta, 0.025, na.rm = TRUE)),
+    q_high    = as.numeric(quantile(beta, 0.975, na.rm = TRUE)),
+    n_models  = .N
+  ),
+  by = .(target, feature)
 ][
   , target := factor(target,
                      levels = c("arousal","content","sad"),
@@ -343,58 +349,60 @@ build_delta_tbl <- function(target_label) {
   sub <- betas_emb %>% dplyr::filter(target == target_label)
   if (nrow(sub) == 0) return(NULL)
   
-  # top positive / negative embedding by beta
-  pos_row <- sub %>% dplyr::arrange(dplyr::desc(beta)) %>% dplyr::slice(1)
-  neg_row <- sub %>% dplyr::arrange(beta)               %>% dplyr::slice(1)
+  # top positive / negative embedding by mean beta
+  pos_row <- sub %>% dplyr::arrange(dplyr::desc(mean_beta)) %>% dplyr::slice(1)
+  neg_row <- sub %>% dplyr::arrange(mean_beta)             %>% dplyr::slice(1)
   
   pos_emb <- pos_row$feature[1]
   neg_emb <- neg_row$feature[1]
   
-  # LIWC correlations for each embedding
-  pos <- corr_liwc_for_embedding(pos_emb) %>% dplyr::rename(rho_pos = rho)
-  neg <- corr_liwc_for_embedding(neg_emb) %>% dplyr::rename(rho_neg = rho)
-  
-  # rank LIWC by DELTA = |rho_pos - rho_neg| (this sets the y-axis order)
-  both <- dplyr::inner_join(pos, neg, by = "liwc") %>%
-    dplyr::mutate(delta = abs(rho_pos - rho_neg)) %>%
-    dplyr::arrange(dplyr::desc(delta)) %>%
-    dplyr::slice(1:TOP_N)
-  
-  # pretty labels with β
   pos_lab <- paste0(
     gsub("^roberta_", "", pos_emb),
-    "\n(β = ", sprintf("%+.02f", pos_row$beta[1]), ")"
+    "\nβ̄ = ", sprintf("%.02f", pos_row$mean_beta[1]),
+    " [", sprintf("%.02f", pos_row$q_low[1]), ", ",
+    sprintf("%.02f", pos_row$q_high[1]), "]"
   )
   
   neg_lab <- paste0(
     gsub("^roberta_", "", neg_emb),
-    "\n(β = ", sprintf("%+.02f", neg_row$beta[1]), ")"
+    "\nβ̄ = ", sprintf("%.02f", neg_row$mean_beta[1]),
+    " [", sprintf("%.02f", neg_row$q_low[1]), ", ",
+    sprintf("%.02f", neg_row$q_high[1]), "]"
   )
   
   
-  # long format; keep `delta` so we can order by it (shared across + / −)
+  pos <- corr_liwc_for_embedding(pos_emb) %>%
+    dplyr::rename(rho_pos = rho)
+  
+  neg <- corr_liwc_for_embedding(neg_emb) %>%
+    dplyr::rename(rho_neg = rho)
+  
+  both <- dplyr::inner_join(pos, neg, by = "liwc") %>%
+    dplyr::mutate(delta = abs(rho_pos - rho_neg)) %>%
+    dplyr::arrange(dplyr::desc(delta)) %>%
+    dplyr::slice(1:TOP_N)
+
   both_long <- tidyr::pivot_longer(
     both,
-    cols = c(rho_pos, rho_neg),
+    cols = c("rho_pos", "rho_neg"),
     names_to = "sign_code",
     values_to = "rho"
   ) %>%
-    mutate(
+    dplyr::mutate(
       sign            = ifelse(sign_code == "rho_pos", "+", "-"),
       embedding_label = ifelse(sign == "+", pos_lab, neg_lab),
       target          = target_label
     ) %>%
-    left_join(liwc_lookup, by = c("liwc" = "liwc")) %>%
-    mutate(
+    dplyr::left_join(liwc_lookup, by = c("liwc" = "liwc")) %>%
+    dplyr::mutate(
       liwc_full = if_else(is.na(liwc_full), liwc, liwc_full),
-      # order by delta using full labels
       liwc_full = forcats::fct_reorder(liwc_full, delta, .desc = TRUE)
     ) %>%
-    select(target, sign, liwc = liwc_full, rho, embedding_label, delta)
-  
+    dplyr::select(target, sign, liwc = liwc_full, rho, embedding_label, delta)
   
   both_long
 }
+
 
 
 # Build for all targets
