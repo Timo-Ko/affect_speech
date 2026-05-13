@@ -2,7 +2,7 @@
 
 # Install and load required packages 
 
-packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "ggtext", "mlr3", "mlr3tuning",  "mlr3learners", "mlr3pipelines","ranger", "glmnet", "future", "remotes", "bbotk", "patchwork")
+packages <- c( "dplyr", "parallel", "data.table", "ggplot2", "ggtext", "mlr3", "mlr3learners", "mlr3pipelines","ranger", "glmnet", "future", "remotes", "bbotk", "patchwork")
 #install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, library, character.only = TRUE)
 
@@ -407,7 +407,7 @@ bmgrid = rbind(design_main,
                design_pca
                )
 
-future::plan("multisession", workers = 20) # enable parallelization
+future::plan("multisession", workers = 10) # enable parallelization
 
 bmr_main = benchmark(bmgrid, store_models = F, store_backends = F) # execute the benchmark
 
@@ -431,7 +431,7 @@ bmgrid_en = benchmark_grid(
   resampling = repeated_cv
 )
 
-future::plan("multisession", workers = 20) # enable parallelization
+future::plan("multisession", workers = 10) # enable parallelization
 
 bmr_en = benchmark(bmgrid_en, store_models = T, store_backends = F) # execute the benchmark
 
