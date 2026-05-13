@@ -2,11 +2,10 @@
 library(dplyr)
 library(psych)
 
-
 ##  load the combined data  -------------------------------------------
 matched_df <- readRDS("data/audio_ema_matched.rds")
 
-## FILTER A  ─ ema within 10 mins available  ------------------------------
+## keep audios with ema within 10 mins available  ------------------------------
 filtered_time_df <- matched_df %>% 
   filter(abs(time_diff)      <= 600)          # 10 mins
 
@@ -20,33 +19,67 @@ sd_obs   <- sd(counts$n)
 mean_obs
 sd_obs
 
-## FILTER B  ─ clip-level rules (min 10 words spoken and 5 secs of voiced speech) ------------------------------
+### apply filters
+
+## FILTER A  ─ clip-level rules (min 10 words spoken and 5 secs of voiced speech) ------------------------------
 filtered_length_df <- filtered_time_df %>% 
   filter(n_words.x      >= 10 & duration_s      >= 5)          # ≥ 10 words and 5 secs of voiced audio
 
-## FILTER C  ─ only one speaker detected ------------------------------
+## FILTER B  ─ only one speaker detected ------------------------------
 filtered_diarization_df <- filtered_length_df %>% 
   filter(num_speakers      == 1)          
 
-# append demographics to final data
-demographics <- read.csv("data/Age_Gender_Fa18.csv")
 
-audio_ema_matched_cleaned <- filtered_diarization_df  %>%
+# append demographics to final data
+
+first_nonmissing <- function(x) {
+  x <- x[!is.na(x) & x != ""]
+  if (length(x) == 0) NA_character_ else x[1]
+}
+
+demographics <- read.csv("data/subset_beiwe_2018UTdemog.csv", stringsAsFactors = FALSE) %>%
+  transmute(
+    beiwe_id = beiwe_id,
+    recorded = as.POSIXct(intro_demographics_RecordedDate_string, format = "%m/%d/%y %H:%M"),
+    Gender = trimws(intro_demographics_Q1_string),
+    Age = suppressWarnings(as.numeric(intro_demographics_Q24_string)),
+    Ethnicity_raw = trimws(intro_demographics_Q7_string)
+  ) %>%
+  mutate(
+    Ethnicity_raw = na_if(Ethnicity_raw, "")
+  ) %>%
+  arrange(beiwe_id, recorded) %>%
+  group_by(beiwe_id) %>%
+  summarise(
+    Gender = first_nonmissing(Gender),
+    Age = suppressWarnings(as.numeric(first_nonmissing(as.character(Age)))),
+    Ethnicity_raw = first_nonmissing(Ethnicity_raw),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Ethnicity = case_when(
+      is.na(Ethnicity_raw) ~ NA_character_,
+      grepl(",", Ethnicity_raw, fixed = TRUE) ~ "Multiple",
+      grepl("Hispanic/Latino", Ethnicity_raw, fixed = TRUE) ~ "Hispanic/Latino",
+      grepl("Asian/ Asian American", Ethnicity_raw, fixed = TRUE) ~ "Asian/Asian American",
+      grepl("Anglo/White", Ethnicity_raw, fixed = TRUE) ~ "White",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  select(beiwe_id, Age, Gender, Ethnicity)
+
+audio_ema_matched_cleaned <- filtered_diarization_df %>%
   left_join(
     demographics,
     by = c("participant_id" = "beiwe_id")
   ) %>%
-  relocate(participant_id, Age, Gender, .before = everything())
+  relocate(participant_id, Age, Gender, Ethnicity, .before = everything())
 
 
-## save and quick report ---------------------------------------------
-saveRDS(audio_ema_features, "data/audio_ema_matched_cleaned.rds") # rds
+## save 
+saveRDS(audio_ema_features_cleaned, "data/audio_ema_matched_cleaned.rds") # rds
 
-cat("\nFinal data: ",
-    n_distinct(audio_ema_matched_cleaned$participant_id), " participants, ",
-    nrow(audio_ema_matched_cleaned), " matched voice-EMA instances kept.\n")
-
-# get some statistics for final sample
+## get some descriptive statistics for final sample
 counts <- audio_ema_matched_cleaned %>%
   count(participant_id)
 
@@ -60,21 +93,46 @@ describe(audio_ema_matched_cleaned$n_words.x)
 describe(audio_ema_matched_cleaned$duration_s)
 
 # participant demographics
-share_female <- audio_ema_matched_cleaned %>%
-  distinct(participant_id, Gender) %>%      # one row per participant
+participant_demo <- audio_ema_matched_cleaned %>%
+  distinct(participant_id, Age, Gender, Ethnicity)
+
+# age
+age_summary <- participant_demo %>%
   summarise(
-    n_total   = n(),
-    n_female  = sum(Gender == "Female", na.rm = TRUE),
-    share_female = n_female / n_total
+    n_age = sum(!is.na(Age)),
+    mean_age = mean(Age, na.rm = TRUE),
+    sd_age = sd(Age, na.rm = TRUE)
   )
 
-share_female
+age_summary
 
-mean_age <- audio_ema_matched_cleaned %>%
-  distinct(participant_id, Age) %>%
-  summarise(mean_age = mean(Age, na.rm = TRUE))
+# gender distribution
+gender_summary <- participant_demo %>%
+  count(Gender, name = "n") %>%
+  mutate(
+    share_all = n / sum(n),
+    share_nonmissing = ifelse(
+      is.na(Gender),
+      NA_real_,
+      n / sum(n[!is.na(Gender)])
+    )
+  )
 
-mean_age
+gender_summary
+
+# ethnicity distribution
+ethnicity_summary <- participant_demo %>%
+  count(Ethnicity, name = "n") %>%
+  mutate(
+    share_all = n / sum(n),
+    share_nonmissing = ifelse(
+      is.na(Ethnicity),
+      NA_real_,
+      n / sum(n[!is.na(Ethnicity)])
+    )
+  )
+
+ethnicity_summary
 
 # cors between emotion self-reports
 
@@ -87,36 +145,45 @@ describe(audio_ema_matched_cleaned$ema_content)
 describe(audio_ema_matched_cleaned$ema_sad)
 describe(audio_ema_matched_cleaned$ema_energy)
 
-# create figure
+# create supplementary figure
 
 library(tidyverse)
 
 ema_long <- audio_ema_matched_cleaned %>%
   transmute(
     Contentment = ema_content,
-    Sadness     = ema_sad,
-    Arousal     = ema_energy
+    Sadness = ema_sad,
+    Arousal = ema_energy
   ) %>%
   pivot_longer(
     cols = everything(),
     names_to = "State",
     values_to = "Rating"
   ) %>%
-  filter(!is.na(Rating)) %>%              # ← remove NAs explicitly
+  filter(!is.na(Rating)) %>%
   mutate(
-    Rating = factor(as.integer(Rating), levels = 0:4),
-    State  = factor(State, levels = c("Contentment", "Sadness", "Arousal"))
+    State = factor(State, levels = c("Contentment", "Sadness", "Arousal")),
+    Rating = as.integer(Rating)
+  )
+
+valid_ratings <- tibble(
+  State = c(rep("Contentment", 4), rep("Sadness", 4), rep("Arousal", 5)),
+  Rating = c(0:3, 0:3, 0:4)
+) %>%
+  mutate(
+    State = factor(State, levels = c("Contentment", "Sadness", "Arousal"))
   )
 
 ema_counts <- ema_long %>%
   count(State, Rating) %>%
-  complete(State, Rating, fill = list(n = 0))
+  right_join(valid_ratings, by = c("State", "Rating")) %>%
+  mutate(n = replace_na(n, 0))
 
 y_max <- max(ema_counts$n)
 
-state_dist <- ggplot(ema_counts, aes(x = Rating, y = n)) +
+state_dist <- ggplot(ema_counts, aes(x = factor(Rating), y = n)) +
   geom_col(color = "white", fill = "grey70", width = 0.9) +
-  facet_wrap(~ State, nrow = 1, scales = "fixed") +
+  facet_wrap(~ State, nrow = 1, scales = "free_x") +
   scale_y_continuous(
     limits = c(0, y_max * 1.05),
     expand = expansion(mult = c(0, 0.02))
@@ -133,14 +200,12 @@ state_dist <- ggplot(ema_counts, aes(x = Rating, y = n)) +
   )
 
 ggsave(
-  filename = "figures/state_distribution.png",
-  plot     = state_dist,
-  width    = 12,
-  height   = 6,
-  units    = "in",
-  dpi      = 300
+  filename = "figures/fig_s2_state_distribution.png",
+  plot = state_dist,
+  width = 12,
+  height = 6,
+  units = "in",
+  dpi = 300
 )
-
-
 
 # finish
