@@ -32,20 +32,32 @@ def read_wav_mono16k(path: str) -> np.ndarray:
 def mean_embed(sig16: np.ndarray, processor, model, device, max_seconds: int) -> np.ndarray:
     if sig16.size == 0:
         raise ValueError("empty signal")
+
     max_len = SR * max_seconds if max_seconds and max_seconds > 0 else None
     if max_len and sig16.size > max_len:
         chunks = [sig16[i:i + max_len] for i in range(0, sig16.size, max_len)]
     else:
         chunks = [sig16]
 
-    embs = []
+    total_sum = None
+    total_frames = 0
+
     with torch.no_grad():
         for arr in chunks:
             inputs = processor(arr, sampling_rate=SR, return_tensors="pt")
             inputs = {k: v.to(device) for k, v in inputs.items()}
+
             out = model(**inputs).last_hidden_state  # [1, T, D]
-            embs.append(out.mean(dim=1).squeeze(0).cpu())
-    return torch.stack(embs, dim=0).mean(dim=0).numpy().astype(np.float32, copy=False)
+            frame_sum = out.sum(dim=1).squeeze(0).cpu()  # [D]
+            n_frames = out.shape[1]
+
+            total_sum = frame_sum if total_sum is None else total_sum + frame_sum
+            total_frames += n_frames
+
+    if total_frames == 0:
+        raise ValueError("no model frames produced")
+
+    return (total_sum / total_frames).numpy().astype(np.float32, copy=False)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -60,6 +72,10 @@ def main():
     args = ap.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
+    
+    # Start each run from a clean output directory to avoid duplicate rows on rerun.
+    for old_csv in glob.glob(os.path.join(args.out_dir, "*.csv")):
+    os.remove(old_csv)
 
     # Discover WAVs after args exist. Support root/*/*.wav and user/*.wav.
     if not os.path.isdir(args.raw_dir):
