@@ -77,7 +77,7 @@ audio_ema_matched_cleaned <- filtered_diarization_df %>%
 
 
 ## save 
-saveRDS(audio_ema_features_cleaned, "data/audio_ema_matched_cleaned.rds") # rds
+saveRDS(audio_ema_matched_cleaned, "data/audio_ema_matched_cleaned.rds") # rds
 
 ## get some descriptive statistics for final sample
 counts <- audio_ema_matched_cleaned %>%

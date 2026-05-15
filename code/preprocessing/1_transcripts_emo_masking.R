@@ -108,7 +108,7 @@ count_words_no_EMO <- function(txt) {
   sum(grepl("^\\p{L}", chunks, perl = TRUE) & !grepl("^EMO\\]?$", chunks))
 }
 
-qa_summary <- audio_ema_masked %>%
+qa_summary <- transcripts_masked %>%
   mutate(
     words_pre   = vapply(transcript,        count_words_no_EMO, integer(1)),
     mask_count  = vapply(transcript_masked, count_mask_tokens,  integer(1)),

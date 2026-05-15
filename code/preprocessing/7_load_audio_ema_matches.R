@@ -97,7 +97,7 @@ ema_audio_long <- ema_audio_long %>%
   ungroup() %>%
   mutate(
     matched_audio_filename = .audio_file,
-    nearest_survey_time    = ymd_hms(.ema_match_time_chr, tz = "UTC"),
+    nearest_survey_time    = lubridate::ymd_hms(.ema_match_time_chr, tz = "UTC"),
     time_diff              = as.numeric(.ema_match_dt),
     adt                    = abs(time_diff)
   ) %>%

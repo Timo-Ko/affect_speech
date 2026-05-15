@@ -2,8 +2,10 @@
 library(dplyr)
 library(text)   # textEmbed()
 
+# this script is used for extracting embeddings from regualr and masked transcripts 
+
 # read in data
-transcripts <- read.csv("data/transcripts_masked.csv")
+transcripts <- read.csv("data/transcripts_masked.csv") # user regualr or masked transcripts as input
 
 texts           <- transcripts$text_masked
 participant_id  <- transcripts$participant_id
@@ -20,7 +22,7 @@ batch_size <- 500
 n          <- length(texts)
 n_batches  <- ceiling(n / batch_size)
 
-batch_dir <- "data/text_embeddings/batches_masked"
+batch_dir <- "data/text_embeddings/batches_masked" # either regular or masked
 dir.create(batch_dir, recursive = TRUE, showWarnings = FALSE)
 
 # ------------- batching loop ------------
