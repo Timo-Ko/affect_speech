@@ -153,13 +153,6 @@ head(betas_we)
 head(betas_liwc)
 
 
-## --- annotate target + modality ---------------------------------------------
-if (nrow(all_betas)) {
-  all_betas[, target := fifelse(grepl("_arousal$", task_id), "arousal",
-                                fifelse(grepl("_content$", task_id), "content", "sad"))]
-  all_betas[, modality := fifelse(grepl("^liwc_", task_id), "liwc", "wordembeddings")]
-}
-
 ## --- combine WE + LIWC betas into one table ---------------------------------
 
 all_betas <- rbindlist(
