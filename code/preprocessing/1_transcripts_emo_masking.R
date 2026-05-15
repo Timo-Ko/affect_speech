@@ -110,8 +110,8 @@ count_words_no_EMO <- function(txt) {
 
 qa_summary <- transcripts_masked %>%
   mutate(
-    words_pre   = vapply(transcript,        count_words_no_EMO, integer(1)),
-    mask_count  = vapply(transcript_masked, count_mask_tokens,  integer(1)),
+    words_pre   = vapply(text,        count_words_no_EMO, integer(1)),
+    mask_count  = vapply(text_masked, count_mask_tokens,  integer(1)),
     words_post  = pmax(words_pre - mask_count, 0L),
     masked_pct  = if_else(words_pre > 0, mask_count / words_pre, 0)
   ) %>%

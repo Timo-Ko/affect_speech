@@ -75,7 +75,7 @@ def main():
     
     # Start each run from a clean output directory to avoid duplicate rows on rerun.
     for old_csv in glob.glob(os.path.join(args.out_dir, "*.csv")):
-    os.remove(old_csv)
+        os.remove(old_csv)
 
     # Discover WAVs after args exist. Support root/*/*.wav and user/*.wav.
     if not os.path.isdir(args.raw_dir):
