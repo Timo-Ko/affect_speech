@@ -352,9 +352,6 @@ lrn_rf <- lrn("regr.ranger", num.trees = 1000)
 
 lrn_en <- lrn("regr.cv_glmnet", alpha = 0.5)
 
-#### OUTER RESAMPLING ####
-repeated_cv <- rsmp("repeated_cv", repeats = 5, folds = 10)
-
 #### PCA PIPELINE ####
 po_pca100 <- po("pca", id = "pca100", rank. = 100, center = TRUE, scale. = TRUE)
 
@@ -366,7 +363,158 @@ lrn_rf_pca$id <- "rf_pca100"
 lrn_en_pca <- GraphLearner$new(po_pca100 %>>% lrn_en)
 lrn_en_pca$id <- "en_pca100"
 
-#### BENCHMARK ####
+
+#### OUTER RESAMPLING: fixed participant-blocked custom CV ####
+
+create_repeated_participant_cv_resampling <- function(participant_ids, folds = 10, repeats = 5, seed = 123) {
+  set.seed(seed, kind = "L'Ecuyer")
+  
+  participant_ids <- sort(unique(participant_ids))
+  
+  train_participant_sets <- list()
+  test_participant_sets  <- list()
+  
+  iter <- 1L
+  for (r in seq_len(repeats)) {
+    shuffled <- sample(participant_ids)
+    fold_id <- rep(seq_len(folds), length.out = length(shuffled))
+    
+    for (f in seq_len(folds)) {
+      test_participants <- shuffled[fold_id == f]
+      
+      test_participant_sets[[iter]]  <- test_participants
+      train_participant_sets[[iter]] <- setdiff(participant_ids, test_participants)
+      
+      iter <- iter + 1L
+    }
+  }
+  
+  list(
+    train_participant_sets = train_participant_sets,
+    test_participant_sets  = test_participant_sets
+  )
+}
+
+participant_sets_to_row_sets <- function(task, participant_cv_sets) {
+  task_participants <- task$data(cols = "participant_id")$participant_id
+  row_ids <- task$row_ids
+  
+  train_sets <- lapply(participant_cv_sets$train_participant_sets, function(pids) {
+    row_ids[task_participants %in% pids]
+  })
+  
+  test_sets <- lapply(participant_cv_sets$test_participant_sets, function(pids) {
+    row_ids[task_participants %in% pids]
+  })
+  
+  list(train_sets = train_sets, test_sets = test_sets)
+}
+
+make_resamplings <- function(tasks, participant_cv_sets) {
+  custom_cv <- rsmp("custom")
+  resamplings <- list()
+  
+  for (task_name in names(tasks)) {
+    row_sets <- participant_sets_to_row_sets(tasks[[task_name]], participant_cv_sets)
+    
+    res <- custom_cv$clone()
+    res$instantiate(
+      tasks[[task_name]],
+      row_sets$train_sets,
+      row_sets$test_sets
+    )
+    
+    resamplings[[task_name]] <- res
+  }
+  
+  resamplings
+}
+
+make_design_from_resamplings <- function(tasks, learners, resamplings) {
+  rows <- list()
+  iter <- 1L
+  
+  for (task_name in names(tasks)) {
+    for (learner in learners) {
+      rows[[iter]] <- data.table::data.table(
+        task = list(tasks[[task_name]]),
+        learner = list(learner$clone(deep = TRUE)),
+        resampling = list(resamplings[[task_name]]$clone(deep = TRUE))
+      )
+      iter <- iter + 1L
+    }
+  }
+  
+  data.table::rbindlist(rows)
+}
+
+# one participant-level fold assignment reused everywhere
+participant_cv_sets <- create_repeated_participant_cv_resampling(
+  participant_ids = audio_ema_features$participant_id,
+  folds = 10,
+  repeats = 5,
+  seed = 123
+)
+
+tasks_main <- list(
+  wordembeddings_arousal = wordembeddings_arousal,
+  wordembeddings_content = wordembeddings_content,
+  wordembeddings_sad = wordembeddings_sad,
+  wordembeddings_masked_arousal = wordembeddings_masked_arousal,
+  wordembeddings_masked_content = wordembeddings_masked_content,
+  wordembeddings_masked_sad = wordembeddings_masked_sad,
+  speechembeddings_arousal = speechembeddings_arousal,
+  speechembeddings_content = speechembeddings_content,
+  speechembeddings_sad = speechembeddings_sad,
+  liwc_arousal = liwc_arousal,
+  liwc_content = liwc_content,
+  liwc_sad = liwc_sad,
+  liwc_masked_arousal = liwc_masked_arousal,
+  liwc_masked_content = liwc_masked_content,
+  liwc_masked_sad = liwc_masked_sad,
+  egemaps_arousal = egemaps_arousal,
+  egemaps_content = egemaps_content,
+  egemaps_sad = egemaps_sad,
+  ensemble_arousal = ensemble_arousal,
+  ensemble_content = ensemble_content,
+  ensemble_sad = ensemble_sad
+)
+
+tasks_pca <- list(
+  wordembeddings_arousal = wordembeddings_arousal,
+  wordembeddings_content = wordembeddings_content,
+  wordembeddings_sad = wordembeddings_sad,
+  speechembeddings_arousal = speechembeddings_arousal,
+  speechembeddings_content = speechembeddings_content,
+  speechembeddings_sad = speechembeddings_sad
+)
+
+resamplings_main <- make_resamplings(tasks_main, participant_cv_sets)
+resamplings_pca  <- make_resamplings(tasks_pca, participant_cv_sets)
+
+saveRDS(participant_cv_sets, "results/participant_cv_sets.rds")
+saveRDS(resamplings_main, "results/resamplings_main.rds")
+saveRDS(resamplings_pca, "results/resamplings_pca.rds")
+
+
+### BENCHMARK DESIGN ####
+
+design_main <- make_design_from_resamplings(
+  tasks = tasks_main,
+  learners = list(lrn_fl, lrn_rf, lrn_en),
+  resamplings = resamplings_main
+)
+
+design_pca <- make_design_from_resamplings(
+  tasks = tasks_pca,
+  learners = list(lrn_rf_pca, lrn_en_pca),
+  resamplings = resamplings_pca
+)
+
+bmgrid <- rbind(design_main, design_pca)
+
+
+#### RUN BENCHMARK ####
 
 # avoid console output from mlr3tuning
 logger = lgr::get_logger("bbotk")
@@ -376,37 +524,6 @@ logger$set_threshold("warn")
 progressr::handlers(global = TRUE)
 progressr::handlers("progress")
 
-## main analyses
-
-design_main = benchmark_grid(
-  task = c(
-    wordembeddings_arousal, wordembeddings_content, wordembeddings_sad,
-    wordembeddings_masked_arousal, wordembeddings_masked_content, wordembeddings_masked_sad,
-    speechembeddings_arousal, speechembeddings_content, speechembeddings_sad,
-    liwc_arousal, liwc_content, liwc_sad,
-    liwc_masked_arousal, liwc_masked_content, liwc_masked_sad,
-    egemaps_arousal, egemaps_content, egemaps_sad,
-    ensemble_arousal, ensemble_content, ensemble_sad
-  ),
-  learner = list(lrn_fl, lrn_rf, lrn_en),
-  resampling = repeated_cv
-)
-
-
-design_pca = benchmark_grid(
-  task =  c(
-    wordembeddings_arousal, wordembeddings_content, wordembeddings_sad,
-    speechembeddings_arousal, speechembeddings_content, speechembeddings_sad
-  ),
-  learner = list(lrn_rf_pca, lrn_en_pca),
-  resampling = repeated_cv
-)
-
-# combine designs so PCA learners run only where intended
-bmgrid = rbind(design_main, 
-               design_pca
-               )
-
 future::plan("multisession", workers = 10) # enable parallelization
 
 bmr_main = benchmark(bmgrid, store_models = F, store_backends = F) # execute the benchmark
@@ -415,21 +532,28 @@ saveRDS(bmr_main, "results/bmr_main.rds") # save results
 
 ## separate benchmark using en (to extract regression weights from later)
 
-bmgrid_en = benchmark_grid(
-  task = c(
-    ensemble_arousal, # ensemble
-    ensemble_content, 
-    ensemble_sad,
-    wordembeddings_arousal, # text embeddings
-    wordembeddings_content,
-    wordembeddings_sad,
-    liwc_arousal, # liwc
-    liwc_content,
-    liwc_sad
-  ),
-  learner = list(lrn_en),
-  resampling = repeated_cv
+tasks_en <- list(
+  ensemble_arousal = ensemble_arousal,
+  ensemble_content = ensemble_content,
+  ensemble_sad = ensemble_sad,
+  wordembeddings_arousal = wordembeddings_arousal,
+  wordembeddings_content = wordembeddings_content,
+  wordembeddings_sad = wordembeddings_sad,
+  liwc_arousal = liwc_arousal,
+  liwc_content = liwc_content,
+  liwc_sad = liwc_sad
 )
+
+resamplings_en <- make_resamplings(tasks_en, participant_cv_sets)
+saveRDS(resamplings_en, "results/resamplings_en.rds")
+
+bmgrid_en <- make_design_from_resamplings(
+  tasks = tasks_en,
+  learners = list(lrn_en),
+  resamplings = resamplings_en
+)
+
+#  run benchmark
 
 future::plan("multisession", workers = 10) # enable parallelization
 
