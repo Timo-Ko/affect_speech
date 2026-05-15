@@ -545,7 +545,7 @@ final_plot <- (p_con | p_sad | p_ar) +
 
 print(final_plot)
 
-ggsave("figures/top_embed_interpretability.png", final_plot,
+ggsave("figures/fig2_top_embed_interpretability.png", final_plot,
        width = 10, height = 5, units = "in", dpi = 300)
 
 

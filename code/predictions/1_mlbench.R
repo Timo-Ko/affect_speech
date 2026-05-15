@@ -750,9 +750,9 @@ print(perf_plot)
 
 
 ggsave(
-  filename = "figures/bmr_plot_violin.png",
+  filename = "figures/fig1_bmr_plot_violin.png",
   plot     = perf_plot,
-  width    = 14,
+  width    = 12,
   height   = 8,
   units    = "in",
   dpi      = 300

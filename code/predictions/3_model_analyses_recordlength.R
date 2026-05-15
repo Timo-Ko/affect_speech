@@ -158,7 +158,7 @@ ggsave(
   "figures/fig_s3_len_vs_error_ensemble_targets_loess_with_hist.png",
   p_len_err_loess,
   width = 10,
-  height = 9,
+  height = 6,
   dpi = 300
 )
 

@@ -15,7 +15,7 @@ transcripts <- read.csv("data/transcripts_combined.csv")
 # diarization results 
 
 # convert to a clean dataframe
-diarization_df <- fromJSON("data/diarization_per_file.json") %>%
+diarization_df <- jsonlite::fromJSON("data/diarization_per_file.json") %>%
   as_tibble() %>%
   mutate(
     timestamp = str_remove(file, "\\.mp4\\.json$"),
@@ -27,32 +27,34 @@ diarization_df <- fromJSON("data/diarization_per_file.json") %>%
 # word embeddings
 wordembeddings <- readRDS("data/textembeddings_robertalarge.rds") # regular
 
-wordembeddings_masked  <- readRDS("data/textembeddings_robertalarge_masked.rds") %>%
+wordembeddings_masked  <- readRDS("data/textembeddings_robertalarge_masked.rds") %>% # word embeddings from masked transcripts 
   rename_with(~ paste0(.x, "_masked"), -c(participant_id, timestamp))
 
 # speech embeddings
 
-# Directory containing per-user embeddings
-in_dir <- "data/speech_embeddings"
+# # Directory containing per-user embeddings
+# in_dir <- "data/speech_embeddings"
+# 
+# # List all CSV files
+# files <- list.files(in_dir, pattern = "\\.csv$", full.names = TRUE)
+# 
+# # read each CSV; skip empty or broken files; keep differing columns
+# read_one <- function(f) {
+#   if (file.size(f) == 0) return(NULL)
+#   tryCatch(
+#     fread(f, showProgress = FALSE),           # fast and robust
+#     error = function(e) { message("FAIL: ", f, " -> ", e$message); NULL }
+#   )
+# }
+# 
+# lst <- lapply(files, read_one)
+# speech_embeddings_all <- rbindlist(lst, fill = TRUE, use.names = TRUE)
+# 
+# cat("Files:", length(files),
+#     " | Loaded:", sum(vapply(lst, Negate(is.null), logical(1))),
+#     " | Rows:", nrow(speech_embeddings_all), "\n")
 
-# List all CSV files
-files <- list.files(in_dir, pattern = "\\.csv$", full.names = TRUE)
-
-# read each CSV; skip empty or broken files; keep differing columns
-read_one <- function(f) {
-  if (file.size(f) == 0) return(NULL)
-  tryCatch(
-    fread(f, showProgress = FALSE),           # fast and robust
-    error = function(e) { message("FAIL: ", f, " -> ", e$message); NULL }
-  )
-}
-
-lst <- lapply(files, read_one)
-speech_embeddings_all <- rbindlist(lst, fill = TRUE, use.names = TRUE)
-
-cat("Files:", length(files),
-    " | Loaded:", sum(vapply(lst, Negate(is.null), logical(1))),
-    " | Rows:", nrow(speech_embeddings_all), "\n")
+speech_embeddings_all <- fread("data/speech_embeddings_patched.csv")
 
 
 speechembeddings <- speech_embeddings_all %>%
@@ -81,7 +83,7 @@ egemaps <- egemaps %>%
     timestamp = format(as.POSIXct(timestamp_s, origin = "1970-01-01", tz = "UTC"),
                        "%Y-%m-%d_%H-%M-%S")
   ) %>%
-  select(participant_id, timestamp, everything(), -file_path, -file, -timestamp_s, -trim_start_s, -trim_end_s)
+  select(participant_id, timestamp, everything(), -file_path, -file, -timestamp_s)
 
 # combine all
 audio_features <- list(
